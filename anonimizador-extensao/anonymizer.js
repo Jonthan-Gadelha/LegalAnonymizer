@@ -37,7 +37,7 @@ class Anonymizer {
   }
 
   resetStats() {
-    this.stats = { cpf:0, cnpj:0, rg:0, titulo:0, address:0, email:0, cep:0, namePF:0, namePJ:0, party:0, partySigla:0, oab:0, processo:0 };
+    this.stats = { cpf:0, cnpj:0, rg:0, titulo:0, address:0, email:0, cep:0, telefone:0, namePF:0, namePJ:0, party:0, partySigla:0, oab:0, processo:0 };
   }
 
   // ================= PREVIEW =================
@@ -58,6 +58,7 @@ class Anonymizer {
     collect("titulo", /(?:t[ií]tulo(?:\s+de)?\s+eleitor)[^.\n\r]{0,40}?\b\d{12}\b/gi);
     collect("email", /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g);
     collect("cep", /\b(?:CEP|cep)[\s:nº]*\d{5}[-\s]?\d{3}\b/gi);
+    collect("telefone", /\(?\d{2}\)?[\s\-]?\d{4,5}[\s\-]?\d{4}/g);
     collect("address", new RegExp(`\\b${this.addrPrefixes}\\s+[\\wÀ-ÿ.,º°/-]{3,}`, "gi"));
     collect("party", /\bPartido\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ][\wÀ-ÿ']+(?:\s+(?:dos?|das?|de|do|da|e)\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ][\wÀ-ÿ']+){0,6}\b/gi);
     collect("partySigla", this._partySiglaRegex("gi"));
@@ -78,6 +79,7 @@ class Anonymizer {
     if (s.titulo) parts.push(`Título: ${s.titulo}`);
     if (s.email) parts.push(`E-mails: ${s.email}`);
     if (s.cep) parts.push(`CEP: ${s.cep}`);
+    if (s.telefone) parts.push(`Telefones: ${s.telefone}`);
     if (s.address) parts.push(`Endereço: ${s.address}`);
     if (s.namePF) parts.push(`Nome PF: ${s.namePF}`);
     if (s.namePJ) parts.push(`Nome PJ: ${s.namePJ}`);
@@ -154,8 +156,10 @@ class Anonymizer {
       return "[OAB PROTEGIDA]";
     });
 
-    // 0.3) PROCESSOS JUDICIAIS - Formato CNJ (0600025-51.2024.6.17.0127)
-    out = out.replace(/\b\d{7}[\s\-]\d{2}[.\s]\d{4}[.\s]\d{1,2}[.\s]\d{2}[.\s]\d{4}\b/g, () => {
+    // 0.3) PROCESSOS JUDICIAIS - Formato CNJ (MÁXIMA PROTEÇÃO)
+    // Formato: NNNNNNN-NN.AAAA.J.TT.OOOO (ex: 0600014-74.2022.6.17.0003)
+    // Aceita variações de separadores (ponto, espaço, hífen)
+    out = out.replace(/\b\d{7}[-\s]\d{2}[.\s]\d{4}[.\s]\d{1,2}[.\s]\d{2}[.\s]\d{4}\b/g, () => {
       this.stats.processo = (this.stats.processo || 0) + 1;
       return "[PROCESSO Nº PROTEGIDO]";
     });
@@ -240,6 +244,19 @@ class Anonymizer {
     out = out.replace(/\b(?:CEP|cep)[\s:nº]*(\d{5}[-\s]?\d{3})\b/gi, () => {
       this.stats.cep++;
       return "[CEP PROTEGIDO]";
+    });
+
+    // 6.5) TELEFONES - Fixos e Celulares (MÁXIMA PROTEÇÃO - processos sigilosos)
+    // Telefone com prefixo explícito (Telefone:, Tel:, Fone:, Celular:, etc.)
+    out = out.replace(/\b(?:Telefone|Tel\.|Tel|Fone|Celular|Cel\.|Cel|Contato)[\s:]*\(?\d{2}\)?[\s\-]?\d{4,5}[\s\-]?\d{4}/gi, () => {
+      this.stats.telefone++;
+      return "[TELEFONE PROTEGIDO]";
+    });
+    // Telefone formatado: (81) 3231-1212, (81) 99962-9192, 81 3231-1212, 8132311212
+    // Aceita início com parêntese ou dígito
+    out = out.replace(/(?<![0-9])\(?\d{2}\)?[\s\-]?\d{4,5}[\s\-]?\d{4}(?![0-9])/g, () => {
+      this.stats.telefone++;
+      return "[TELEFONE PROTEGIDO]";
     });
 
     // 7) Endereços Completos (Rua X nº 123, Apto 304, Bairro Y)

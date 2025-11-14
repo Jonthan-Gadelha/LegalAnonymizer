@@ -67,6 +67,7 @@ anonimizador-extensao/
 - **OAB** (com/sem prefixo, múltiplos separadores) → `[OAB PROTEGIDA]`
 - **E-mails** (exemplo: mariana.silva.costa@exemplo.com) → `[E-MAIL PROTEGIDO]`
 - **CEP** (com prefixo explícito: CEP: 50770-610, CEP nº 50770610) → `[CEP PROTEGIDO]`
+- **Telefones** (fixos e celulares: (81) 3231-1212, (81) 99962-9192) → `[TELEFONE PROTEGIDO]`
 - **Endereços completos** (Rua X nº 123, Apto 304, Bairro) → `[ENDEREÇO PROTEGIDO]` ou `[LOCALIZAÇÃO]`
 - **Nomes de pessoas físicas** (2+ palavras capitalizadas) → `[NOME PROTEGIDO]`
 - **Nomes de pessoas jurídicas** (empresas, órgãos) → `[PJ PROTEGIDA]`
