@@ -170,9 +170,9 @@ class Anonymizer {
       return /(processo|process|documento|doc\.?|num\.?|número|nº|acórdão|sentença|movimentação)/.test(ctx);
     };
 
-    // 1) CPF - TODAS AS VARIAÇÕES
-    // CPF com prefixo explícito (CPF:, CPF nº, etc.)
-    out = out.replace(/\b(?:CPF|cpf)[\s:nº]*(\d{3}[.\s*]*\d{3}[.\s*]*\d{3}[-\s*]*\d{2})\b/gi, () => { 
+    // 1) CPF - TODAS AS VARIAÇÕES (PERFEIÇÃO ABSOLUTA)
+    // CPF com prefixo explícito (CPF:, CPF nº, CPF/MF, etc.)
+    out = out.replace(/\b(?:CPF|cpf)(?:\/MF)?[\s:nº]*(\d{3}[.\s*]*\d{3}[.\s*]*\d{3}[-\s*]*\d{2})\b/gi, () => { 
       this.stats.cpf++; 
       return "[CPF PROTEGIDO]"; 
     });
@@ -181,8 +181,8 @@ class Anonymizer {
       this.stats.cpf++; 
       return "[CPF PROTEGIDO]"; 
     });
-    // CPF formatado (123.456.789-01, 123 456 789 01)
-    out = out.replace(/\b\d{3}[.\s]\d{3}[.\s]\d{3}[-\s]\d{2}\b/g, () => { 
+    // CPF formatado - QUALQUER COMBINAÇÃO DE SEPARADORES (051.711.434-80, 123 456 789 01, 123.456.789-01)
+    out = out.replace(/\b\d{3}[.\s]?\d{3}[.\s]?\d{3}[-\s]?\d{2}\b/g, () => { 
       this.stats.cpf++; 
       return "[CPF PROTEGIDO]"; 
     });
@@ -211,14 +211,24 @@ class Anonymizer {
       return (this.stats.cnpj++, "[CNPJ PROTEGIDO]");
     });
 
-    // 3) RG - TODAS AS VARIAÇÕES
-    // RG com prefixo explícito (RG:, RG nº, etc.)
-    out = out.replace(/\b(?:RG|rg)[\s:nº]*(\d{1,2}[.\s]*\d{3}[.\s]*\d{3}[-\s]*[0-9Xx])\b/gi, () => { 
+    // 3) RG - TODAS AS VARIAÇÕES (PERFEIÇÃO ABSOLUTA)
+    // RG com órgão emissor (6421425 SDS/PE, 8.469.789 SDS/PE, 1234567 SSP/SP, etc.)
+    out = out.replace(/\b\d{1,2}[.\s]?\d{3}[.\s]?\d{3}[-\s]?[0-9Xx]?\s+(?:SDS|SSP|IFP|DETRAN|SESP|PC|PM|DIC|IIRGD|DGPC|IPF|ITEP|SESDC|EST|POF|MEX|CGPI|CTPS|DPF|MAER|MME|SECC|CBM|CRM|CREA|OAB)[\s\/]*[A-Z]{2}\b/gi, () => { 
       this.stats.rg++; 
       return "[RG PROTEGIDO]"; 
     });
-    // RG formatado (1.234.567-8, 12.345.678-9)
-    out = out.replace(/\b\d{1,2}[.\s]\d{3}[.\s]\d{3}[-\s][0-9Xx]\b/g, () => { 
+    // RG com prefixo explícito (RG:, RG nº, IE/RG:, Identidade nº, etc.)
+    out = out.replace(/\b(?:RG|rg|IE\/RG|Identidade)[\s:nº]*(\d{1,2}[.\s]?\d{3}[.\s]?\d{3}[-\s]?[0-9Xx]?)\b/gi, () => { 
+      this.stats.rg++; 
+      return "[RG PROTEGIDO]"; 
+    });
+    // RG formatado - QUALQUER COMBINAÇÃO DE SEPARADORES (1.234.567-8, 12.345.678-9, 1234567-8, 12 345 678 9)
+    out = out.replace(/\b\d{1,2}[.\s]?\d{3}[.\s]?\d{3}[-\s]?[0-9Xx]\b/g, () => { 
+      this.stats.rg++; 
+      return "[RG PROTEGIDO]"; 
+    });
+    // RG sem formatação (7 dígitos) - contexto IE/RG
+    out = out.replace(/\b(?:IE|ie|RG|rg)[\s:\/nº]*(\d{7})\b/gi, () => { 
       this.stats.rg++; 
       return "[RG PROTEGIDO]"; 
     });
