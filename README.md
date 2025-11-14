@@ -12,13 +12,17 @@ O **Anonimizador LexMind** é uma extensão Chrome profissional para anonimizaç
 
 ### ✨ Características
 
+**Extensão Chrome:**
 - ✅ Anonimização automática de dados sensíveis
-- ✅ Suporte a arquivos TXT, HTML e PDF
-- ✅ Processamento de PDFs com OCR (reconhecimento ótico de caracteres)
+- ✅ Suporte a arquivos TXT e HTML
 - ✅ Interface moderna e intuitiva
 - ✅ Processamento 100% local (sem envio de dados para servidores)
 - ✅ Estatísticas detalhadas de anonimização
 - ✅ Download e cópia de resultados
+
+**Demonstração Web:**
+- ✅ Todas as funcionalidades da extensão
+- ✅ Interface web acessível sem instalação
 
 ### 🔐 Dados Removidos
 
@@ -72,7 +76,7 @@ Para testar a funcionalidade sem instalar a extensão:
    http://localhost:5000
    ```
 
-A demonstração web oferece todas as funcionalidades da extensão, exceto o processamento de PDFs com OCR.
+A demonstração web oferece todas as funcionalidades da extensão.
 
 ---
 
@@ -82,27 +86,11 @@ A demonstração web oferece todas as funcionalidades da extensão, exceto o pro
 
 1. **Clique no ícone da extensão** na barra de ferramentas do Chrome
 
-2. **Cole o texto** do processo judicial na área de texto OU **selecione um arquivo** (TXT, HTML, PDF)
+2. **Cole o texto** do processo judicial na área de texto OU **selecione um arquivo** (TXT, HTML)
 
 3. **Clique em "🔒 Anonimizar"**
 
-4. **Aguarde o processamento** (pode levar alguns segundos para PDFs grandes)
-
-5. **Copie ou baixe** o resultado anonimizado
-
-### Processamento de PDFs
-
-A extensão suporta dois tipos de PDFs:
-
-#### PDFs com Texto Extraível
-- Processamento instantâneo
-- Extração direta do texto
-
-#### PDFs Escaneados (Imagens)
-- Utiliza OCR (Tesseract.js)
-- Tempo estimado: ~30-60 segundos por página
-- Limite recomendado: 10 páginas
-- Você será avisado antes do processamento
+4. **Copie ou baixe** o resultado anonimizado
 
 ---
 
@@ -113,19 +101,14 @@ anonimizador-extensao/
 ├── manifest.json           # Configuração da extensão Chrome
 ├── popup.html             # Interface da extensão
 ├── popup.css              # Estilos da interface
-├── popup.js               # Lógica principal da extensão
+├── popup.js               # Lógica principal (versão simplificada)
 ├── anonymizer.js          # Motor de anonimização
-├── pdf-processor.js       # Processamento de PDFs
-├── ocr-processor.js       # Processamento OCR
 ├── content.js             # Script de conteúdo
 ├── icons/                 # Ícones da extensão
 │   ├── icon16.png
 │   ├── icon48.png
 │   └── icon128.png
-└── lib/                   # Bibliotecas externas
-    ├── pdf.min.js         # PDF.js
-    ├── pdf.worker.min.js  # Worker do PDF.js
-    └── tesseract.min.js   # Tesseract OCR
+└── lib/                   # Bibliotecas externas (para versões futuras)
 
 Arquivos de Demonstração:
 ├── demo.html              # Página de demonstração web
@@ -139,8 +122,6 @@ Arquivos de Demonstração:
 
 - **JavaScript ES6+** - Linguagem principal
 - **Chrome Extension API** - Plataforma de extensões
-- **PDF.js** - Extração de texto de PDFs
-- **Tesseract.js** - OCR (Reconhecimento Ótico de Caracteres)
 - **Node.js** - Servidor de demonstração
 - **HTML5 + CSS3** - Interface moderna
 
@@ -168,8 +149,7 @@ Arquivos de Demonstração:
 ### Desempenho
 
 - ⚡ Processamento de texto: **Instantâneo**
-- ⚡ PDFs pequenos (< 10 páginas): **< 5 segundos**
-- ⚡ PDFs com OCR (por página): **~30-60 segundos**
+- ⚡ Arquivos TXT/HTML: **< 1 segundo**
 
 ---
 
@@ -209,15 +189,10 @@ Réu: [NOME_PJ_001], CNPJ: [CNPJ_001]
 - Verifique se o "Modo do desenvolvedor" está ativado
 - Tente recarregar a extensão em `chrome://extensions/`
 
-### PDFs não estão sendo processados
-- Certifique-se de que as bibliotecas PDF.js e Tesseract.js estão na pasta `lib/`
-- Verifique se o arquivo PDF não está corrompido
-- PDFs muito grandes podem demorar ou não processar
-
-### OCR não funciona
-- O OCR requer arquivos PDF válidos com imagens
-- Limite recomendado: 10 páginas
-- Certifique-se de que tem conexão de internet na primeira execução (para carregar modelos OCR)
+### Arquivos não estão sendo processados
+- Verifique se o arquivo é um arquivo de texto válido (.txt ou .html)
+- Certifique-se de que o arquivo não está corrompido
+- Para PDFs, use ferramentas online para converter para texto primeiro
 
 ---
 
@@ -243,19 +218,19 @@ Este projeto foi desenvolvido em conformidade com:
 **v1.0.0** - Novembro 2025
 
 ### Changelog
-- ✅ Anonimização completa de dados sensíveis
-- ✅ Suporte a PDFs com OCR
+- ✅ Anonimização completa de dados sensíveis (CPF, CNPJ, RG, nomes, endereços, etc)
+- ✅ Suporte a arquivos TXT e HTML
 - ✅ Interface moderna e intuitiva
-- ✅ Correção do erro de sintaxe (linha 314 do popup.js)
+- ✅ Correção do erro de sintaxe (linha 314 do arquivo original)
 - ✅ Demonstração web standalone
+- ✅ Versão simplificada sem dependências externas complexas
 
 ---
 
 ## 🙏 Agradecimentos
 
-- **PDF.js** - Mozilla Foundation
-- **Tesseract.js** - Naptha
-- **CNJ** - Conselho Nacional de Justiça
+- **CNJ** - Conselho Nacional de Justiça pela Resolução nº 615/2025
+- **Comunidade Open Source** - Pela inspiração e melhores práticas
 
 ---
 

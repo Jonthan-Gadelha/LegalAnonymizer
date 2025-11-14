@@ -1,6 +1,5 @@
-// Popup JavaScript - Lógica principal da extensão de anonimização com suporte a PDF
+// Popup JavaScript - Versão Simplificada (apenas TXT e HTML)
 
-// Inicialização quando o DOM estiver carregado
 document.addEventListener('DOMContentLoaded', function() {
     // Elementos do DOM
     const fileInput = document.getElementById('file-input');
@@ -13,25 +12,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const downloadBtn = document.getElementById('download-btn');
     const statsSection = document.getElementById('stats');
     const statsCount = document.getElementById('stats-count');
-    const progressSection = document.getElementById('progress-section');
-    const progressFill = document.getElementById('progress-fill');
-    const progressText = document.getElementById('progress-text');
-    const ocrWarning = document.getElementById('ocr-warning');
-    const proceedOcrBtn = document.getElementById('proceed-ocr-btn');
-    const skipOcrBtn = document.getElementById('skip-ocr-btn');
     
-    // Instâncias dos processadores
+    // Instância do anonimizador
     const anonymizer = new Anonymizer();
-    const pdfProcessor = new PDFProcessor();
-    const ocrProcessor = new OCRProcessor();
-    
-    // Inicializar OCR
-    ocrProcessor.init();
     
     // Estado da aplicação
     let currentResult = null;
     let currentFilename = null;
-    let currentFileType = null;
     
     // Event Listeners
     fileInput.addEventListener('change', handleFileSelect);
@@ -39,8 +26,6 @@ document.addEventListener('DOMContentLoaded', function() {
     clearBtn.addEventListener('click', handleClear);
     copyBtn.addEventListener('click', handleCopy);
     downloadBtn.addEventListener('click', handleDownload);
-    proceedOcrBtn.addEventListener('click', handleProceedOCR);
-    skipOcrBtn.addEventListener('click', handleSkipOCR);
     
     // Função para lidar com seleção de arquivo
     async function handleFileSelect(event) {
@@ -48,93 +33,19 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!file) return;
         
         currentFilename = file.name;
-        currentFileType = getFileType(file);
         
         // Verificar tipo de arquivo
         if (!isValidFileType(file)) {
-            showError('Tipo de arquivo não suportado. Use arquivos .txt, .html ou .pdf');
+            showError('Tipo de arquivo não suportado. Use arquivos .txt ou .html');
             return;
         }
         
         try {
-            if (currentFileType === 'pdf') {
-                await handlePDFFile(file);
-            } else {
-                await handleTextFile(file);
-            }
+            await handleTextFile(file);
         } catch (error) {
             console.error('Erro ao processar arquivo:', error);
             showError('Erro ao processar o arquivo: ' + error.message);
         }
-    }
-    
-    // Função para processar arquivos PDF
-    async function handlePDFFile(file) {
-        showProgress(true, 'Analisando PDF...');
-        
-        try {
-            // Primeiro, tentar extrair texto do PDF
-            const result = await pdfProcessor.extractTextFromPDF(file, (progress) => {
-                const percentage = (progress.page / progress.total) * 100;
-                updateProgress(percentage, progress.message);
-            });
-            
-            if (!result.success) {
-                throw new Error(result.error);
-            }
-            
-            if (result.fullText.trim()) {
-                // PDF tem texto extraível
-                textInput.value = result.fullText;
-                showSuccess(`PDF processado! ${result.pagesWithText} páginas com texto extraído.`);
-                
-                if (result.pagesWithoutText > 0) {
-                    showInfo(`${result.pagesWithoutText} páginas podem precisar de OCR (serão processadas na anonimização).`);
-                }
-                
-                // Mostrar preview dos dados sensíveis encontrados
-                showPreview(result.fullText);
-            } else {
-                // PDF não tem texto extraível - todas as páginas precisam de OCR
-                if (ocrProcessor.isOCRViable(result.totalPages)) {
-                    showOCRWarning(result.totalPages);
-                } else {
-                    showError(`PDF contém ${result.totalPages} páginas de imagem. Limite recomendado: 10 páginas para OCR.`);
-                }
-                textInput.value = `[PDF com ${result.totalPages} páginas - OCR será aplicado durante a anonimização]`;
-            }
-            
-        } catch (error) {
-            showError('Erro ao processar PDF: ' + error.message);
-        } finally {
-            showProgress(false);
-        }
-    }
-    
-    // Funções para controlar o aviso de OCR
-    function showOCRWarning(pageCount) {
-        const estimatedTime = ocrProcessor.estimateProcessingTime(pageCount);
-        ocrWarning.querySelector('p').textContent = 
-            `Este PDF contém ${pageCount} páginas de imagem que precisam de OCR. Tempo estimado: ${estimatedTime}`;
-        ocrWarning.style.display = 'block';
-    }
-    
-    function hideOCRWarning() {
-        ocrWarning.style.display = 'none';
-    }
-    
-    function handleProceedOCR() {
-        hideOCRWarning();
-        handlePDFWithOCR();
-    }
-    
-    function handleSkipOCR() {
-        hideOCRWarning();
-        const text = textInput.value;
-        if (text.includes('[PDF com')) {
-            textInput.value = '[OCR foi pulado - apenas texto extraível foi processado]';
-        }
-        showInfo('OCR foi pulado. Apenas texto extraível será processado.');
     }
     
     // Função para processar arquivos de texto
@@ -179,7 +90,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Função principal de anonimização
-    async function handleAnonymize() {
+    function handleAnonymize() {
         const text = textInput.value.trim();
         
         if (!text) {
@@ -187,13 +98,6 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        // Verificar se é um PDF que precisa de OCR
-        if (currentFileType === 'pdf' && text.includes('[PDF com')) {
-            await handlePDFWithOCR();
-            return;
-        }
-        
-        // Processamento normal de texto
         setLoadingState(true);
         
         setTimeout(() => {
@@ -202,104 +106,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 displayResult(currentResult);
                 updateStats(currentResult);
                 setLoadingState(false);
+                showSuccess('Texto anonimizado com sucesso!');
             } catch (error) {
                 console.error('Erro na anonimização:', error);
                 showError('Erro ao processar o texto');
                 setLoadingState(false);
             }
-        }, 500);
-    }
-    
-    // Função para processar PDF com OCR
-    async function handlePDFWithOCR() {
-        const file = fileInput.files[0];
-        if (!file) {
-            showError('Arquivo PDF não encontrado');
-            return;
-        }
-        
-        try {
-            showProgress(true, 'Analisando PDF para OCR...');
-            
-            // Identificar páginas que precisam de OCR
-            const analysis = await pdfProcessor.identifyOCRPages(file);
-            
-            if (!analysis.success) {
-                throw new Error(analysis.error);
-            }
-            
-            const ocrPages = analysis.pagesNeedingOCR;
-            
-            if (ocrPages.length === 0) {
-                // Não há páginas para OCR, usar texto já extraído
-                textInput.value = analysis.textExtracted;
-                showSuccess('PDF processado! Todo o texto foi extraído diretamente.');
-                showPreview(analysis.textExtracted);
-                showProgress(false);
-                return;
-            }
-            
-            // Verificar se o OCR é viável
-            if (!ocrProcessor.isOCRViable(ocrPages.length)) {
-                const estimatedTime = ocrProcessor.estimateProcessingTime(ocrPages.length);
-                showError(`Muitas páginas para OCR (${ocrPages.length}). Tempo estimado: ${estimatedTime}. Limite recomendado: 10 páginas.`);
-                showProgress(false);
-                return;
-            }
-            
-            // Avisar sobre o tempo de processamento
-            const estimatedTime = ocrProcessor.estimateProcessingTime(ocrPages.length);
-            showInfo(`Iniciando OCR em ${ocrPages.length} páginas. Tempo estimado: ${estimatedTime}`);
-            
-            // Processar OCR
-            const ocrResult = await ocrProcessor.processPDFPages(
-                file, 
-                ocrPages, 
-                pdfProcessor, 
-                (progress) => {
-                    updateProgress(progress.progress, progress.message);
-                }
-            );
-            
-            if (!ocrResult.success) {
-                throw new Error(ocrResult.error);
-            }
-            
-            // Combinar texto extraído com texto do OCR
-            let fullText = analysis.textExtracted || '';
-            let ocrTextCount = 0;
-            
-            for (const pageResult of ocrResult.results) {
-                if (pageResult.result.success && pageResult.result.text.trim()) {
-                    const cleanText = ocrProcessor.cleanOCRText(pageResult.result.text);
-                    if (cleanText.length > 10) {
-                        fullText += `\n--- Página ${pageResult.pageNumber} (OCR) ---\n${cleanText}\n`;
-                        ocrTextCount++;
-                    }
-                }
-            }
-            
-            if (ocrTextCount > 0) {
-                textInput.value = fullText;
-                showSuccess(`OCR concluído! Texto extraído de ${ocrTextCount} páginas adicionais.`);
-                showPreview(fullText);
-            } else {
-                showError('OCR não conseguiu extrair texto legível das páginas de imagem.');
-                textInput.value = analysis.textExtracted || '';
-            }
-            
-        } catch (error) {
-            console.error('Erro no processamento OCR:', error);
-            showError('Erro no OCR: ' + error.message);
-        } finally {
-            showProgress(false);
-        }
+        }, 300);
     }
     
     // Função para exibir o resultado
     function displayResult(result) {
         resultText.value = result.anonymizedText;
-        window.lastAnonText = result.anonymizedText;
         currentResult = result;
         
         resultSection.style.display = 'block';
@@ -328,11 +146,8 @@ document.addEventListener('DOMContentLoaded', function() {
         fileInput.value = '';
         resultSection.style.display = 'none';
         statsSection.style.display = 'none';
-        showProgress(false);
-        hideOCRWarning();
         currentResult = null;
         currentFilename = null;
-        currentFileType = null;
         hideMessages();
     }
     
@@ -385,24 +200,6 @@ document.addEventListener('DOMContentLoaded', function() {
         showSuccess(`Arquivo baixado: ${filename}`);
     }
     
-    // Funções de progresso
-    function showProgress(show, message = 'Processando...') {
-        if (show) {
-            progressSection.style.display = 'block';
-            progressText.textContent = message;
-            progressFill.style.width = '0%';
-        } else {
-            progressSection.style.display = 'none';
-        }
-    }
-    
-    function updateProgress(percentage, message = null) {
-        progressFill.style.width = `${Math.min(100, Math.max(0, percentage))}%`;
-        if (message) {
-            progressText.textContent = message;
-        }
-    }
-    
     // Função para mostrar estado de carregamento
     function setLoadingState(loading) {
         anonymizeBtn.disabled = loading;
@@ -417,17 +214,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Funções auxiliares
-    function getFileType(file) {
-        if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
-            return 'pdf';
-        }
-        return 'text';
-    }
-    
     function isValidFileType(file) {
-        const allowedTypes = ['text/plain', 'text/html', 'application/html', 'application/pdf'];
+        const allowedTypes = ['text/plain', 'text/html', 'application/html'];
         const fileExtension = file.name.toLowerCase().split('.').pop();
-        const allowedExtensions = ['txt', 'html', 'htm', 'pdf'];
+        const allowedExtensions = ['txt', 'html', 'htm'];
         
         return allowedTypes.includes(file.type) || allowedExtensions.includes(fileExtension);
     }

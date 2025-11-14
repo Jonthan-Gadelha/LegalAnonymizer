@@ -16,8 +16,8 @@
         <section class="input-section">
             <div class="file-upload">
                 <label for="file-input" class="file-label">
-                    📁 Selecionar Arquivo (TXT, HTML, PDF)
-                    <input type="file" id="file-input" accept=".txt,.html,.htm,.pdf" hidden>
+                    📁 Selecionar Arquivo (TXT, HTML)
+                    <input type="file" id="file-input" accept=".txt,.html,.htm" hidden>
                 </label>
             </div>
 
@@ -31,22 +31,6 @@
                 <button id="clear-btn" class="btn btn-secondary">🗑️ Limpar</button>
             </div>
         </section>
-
-        <div id="progress-section" class="progress-section" style="display: none;">
-            <div class="progress-bar">
-                <div id="progress-fill" class="progress-fill"></div>
-            </div>
-            <p id="progress-text">Processando...</p>
-        </div>
-
-        <div id="ocr-warning" class="ocr-warning" style="display: none;">
-            <h3>⚠️ Aviso de OCR</h3>
-            <p>Este PDF contém páginas de imagem que precisam de OCR.</p>
-            <div class="button-group">
-                <button id="proceed-ocr-btn" class="btn btn-primary">Continuar com OCR</button>
-                <button id="skip-ocr-btn" class="btn btn-secondary">Pular OCR</button>
-            </div>
-        </div>
 
         <section id="stats" class="stats-section" style="display: none;">
             <h3>📊 Estatísticas</h3>
@@ -68,11 +52,6 @@
     </footer>
 
     <script src="anonymizer.js"></script>
-    <script src="lib/pdf.min.js"></script>
-    <script src="lib/pdf.worker.min.js"></script>
-    <script src="lib/tesseract.min.js"></script>
-    <script src="pdf-processor.js"></script>
-    <script src="ocr-processor.js"></script>
     <script src="popup.js"></script>
 </body>
 </html>
