@@ -25,12 +25,13 @@ Este é o **Anonimizador LexMind**, uma extensão Chrome profissional desenvolvi
 - ✅ **Regex de nomes seguro** (evita capturar palavras comuns)
 - ✅ **OCR automático** para PDFs escaneados (Tesseract.js)
 - ✅ **Feedback transparente** ao usuário sobre páginas processadas/ignoradas
-- ✅ **Padrões de regex inteligentes e SEGUROS** - Captura variações de CPF, CNPJ, OAB e RG:
-  - CPF: formatado, sem formatação, com prefixo, parcialmente mascarado (051.***.***-80)
-  - CNPJ: formatado, sem formatação, com "nº" (CNPJ nº 10.882.771/0001-03)
-  - OAB: com prefixo explícito, múltiplos separadores (OAB: PE29561, OAB/SP nº 123456, OAB PE-49456-A)
-  - OAB sem prefixo: context-aware com UFs brasileiras (PE29561, PE:2001, etc.)
-  - RG: formatado, com prefixo, diferentes tamanhos (RG: 1.234.567-8)
+- ✅ **Padrões de regex ULTRA-PRECISOS** - Captura TODAS as variações de CPF, CNPJ, RG, OAB e telefones:
+  - **CPF**: formatado (051.711.434-80), sem formatação, com prefixo (CPF/MF), parcialmente mascarado (051.***.***-80)
+  - **CNPJ**: formatado (28.765.811/0001-00), sem formatação, com "nº" (CNPJ nº 10.882.771/0001-03)
+  - **RG**: formatado (6421425, 8.469.789), com órgão emissor (6421425 SDS/PE, 8.469.789 SDS/PE), com prefixo (IE/RG:)
+  - **OAB**: com prefixo explícito, múltiplos separadores (OAB: PE29561, OAB/SP nº 123456, OAB PE-49456-A)
+  - **OAB** sem prefixo: context-aware com UFs brasileiras (PE29561, PE:2001, etc.)
+  - **Telefones**: com DDD ((81) 3231-1212), sem DDD (32267433, 81981252689), com contexto
   - **Nota**: Padrões inteligentes evitam falsos positivos ("PE 2024" em contexto de calendário não é capturado)
 
 ## Arquitetura

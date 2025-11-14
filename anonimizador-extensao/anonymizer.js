@@ -212,8 +212,9 @@ class Anonymizer {
     });
 
     // 3) RG - TODAS AS VARIAÇÕES (PERFEIÇÃO ABSOLUTA)
-    // RG com órgão emissor (6421425 SDS/PE, 8.469.789 SDS/PE, 1234567 SSP/SP, etc.)
-    out = out.replace(/\b\d{1,2}[.\s]?\d{3}[.\s]?\d{3}[-\s]?[0-9Xx]?\s+(?:SDS|SSP|IFP|DETRAN|SESP|PC|PM|DIC|IIRGD|DGPC|IPF|ITEP|SESDC|EST|POF|MEX|CGPI|CTPS|DPF|MAER|MME|SECC|CBM|CRM|CREA|OAB)[\s\/]*[A-Z]{2}\b/gi, () => { 
+    // RG com órgão emissor - ACEITA 5-9 DÍGITOS com ou sem formatação
+    // Exemplos: 6421425 SDS/PE, 8.469.789 SDS/PE, 1234567 SSP/SP, 12345 SDS-PE, 1234567 SSP-SP
+    out = out.replace(/\b(?:\d[.\s]?){5,9}\d?[-\s]?[0-9Xx]?\s+(?:SDS|SSP|IFP|DETRAN|SESP|PC|PM|DIC|IIRGD|DGPC|IPF|ITEP|SESDC|EST|POF|MEX|CGPI|CTPS|DPF|MAER|MME|SECC|CBM|CRM|CREA|OAB)[\s\/\-]*[A-Z]{2}\b/gi, () => { 
       this.stats.rg++; 
       return "[RG PROTEGIDO]"; 
     });
@@ -227,8 +228,8 @@ class Anonymizer {
       this.stats.rg++; 
       return "[RG PROTEGIDO]"; 
     });
-    // RG sem formatação (7 dígitos) - contexto IE/RG
-    out = out.replace(/\b(?:IE|ie|RG|rg)[\s:\/nº]*(\d{7})\b/gi, () => { 
+    // RG sem formatação (5-9 dígitos) - contexto IE/RG
+    out = out.replace(/\b(?:IE|ie|RG|rg)[\s:\/nº]*(\d{5,9})\b/gi, () => { 
       this.stats.rg++; 
       return "[RG PROTEGIDO]"; 
     });
