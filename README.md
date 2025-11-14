@@ -22,6 +22,7 @@ O **Anonimizador LexMind** é uma extensão Chrome profissional para anonimizaç
 
 **Demonstração Web:**
 - ✅ Todas as funcionalidades da extensão
+- ✅ **Suporte completo a PDFs** (extração automática de texto)
 - ✅ Interface web acessível sem instalação
 
 ### 🔐 Dados Removidos
@@ -76,7 +77,7 @@ Para testar a funcionalidade sem instalar a extensão:
    http://localhost:5000
    ```
 
-A demonstração web oferece todas as funcionalidades da extensão.
+A demonstração web oferece todas as funcionalidades da extensão, **incluindo suporte completo a arquivos PDF**. Basta fazer upload do PDF que o texto será extraído automaticamente!
 
 ---
 
@@ -91,6 +92,20 @@ A demonstração web oferece todas as funcionalidades da extensão.
 3. **Clique em "🔒 Anonimizar"**
 
 4. **Copie ou baixe** o resultado anonimizado
+
+### Usando a Demonstração Web (com suporte a PDFs)
+
+1. **Acesse a demonstração** através da URL da webview
+
+2. **Faça upload de um arquivo PDF** ou cole o texto diretamente
+
+3. **Aguarde a extração do texto** (PDFs são processados automaticamente)
+
+4. **Clique em "🔒 Anonimizar"**
+
+5. **Copie ou baixe** o resultado anonimizado
+
+> **💡 Dica**: A demonstração web é ideal para processar PDFs de processos judiciais! O texto é extraído automaticamente e todos os dados sensíveis são removidos.
 
 ---
 
@@ -150,6 +165,8 @@ Arquivos de Demonstração:
 
 - ⚡ Processamento de texto: **Instantâneo**
 - ⚡ Arquivos TXT/HTML: **< 1 segundo**
+- ⚡ PDFs digitais (com texto): **1-5 segundos**
+- ⏱️ PDFs escaneados (OCR): **~30 segundos por página**
 
 ---
 

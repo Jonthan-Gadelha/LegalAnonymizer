@@ -37,7 +37,7 @@ class Anonymizer {
   }
 
   resetStats() {
-    this.stats = { cpf:0, cnpj:0, rg:0, titulo:0, address:0, namePF:0, namePJ:0, party:0, partySigla:0, oab:0 };
+    this.stats = { cpf:0, cnpj:0, rg:0, titulo:0, address:0, namePF:0, namePJ:0, party:0, partySigla:0, oab:0, processo:0 };
   }
 
   // ================= PREVIEW =================
@@ -69,6 +69,7 @@ class Anonymizer {
   formatStats() {
     const s = this.stats;
     const parts = [];
+    if (s.processo) parts.push(`Processos: ${s.processo}`);
     if (s.cpf) parts.push(`CPF: ${s.cpf}`);
     if (s.cnpj) parts.push(`CNPJ: ${s.cnpj}`);
     if (s.rg) parts.push(`RG: ${s.rg}`);
@@ -87,6 +88,7 @@ class Anonymizer {
     const join = this.nameJoiners.join("|");
     const capToken = "(?:[A-ZÁÉÍÓÚÂÊÔÃÕÇ][a-zà-úâêôãõç']+|[A-ZÁÉÍÓÚÂÊÔÃÕÇ]{2,})";
     const joiner = `(?:\\s+(?:${join}))?`;
+    // Requer pelo menos 2 tokens (nome + sobrenome) para evitar falsos positivos
     const pattern = `\\b${capToken}(?:${joiner}\\s+${capToken}){1,4}\\b`;
     return new RegExp(pattern, flags);
   }
@@ -117,6 +119,19 @@ class Anonymizer {
 
     // 0.1) Proteção para números da OAB (Ex: PE29561, PE49456-A)
     out = out.replace(/\b[A-Z]{2}\d{3,6}(?:-[A-Z])?\b/g, () => { this.stats.oab++; return "[OAB PROTEGIDA]"; });
+
+    // 0.2) ANONIMIZAR NÚMEROS DE PROCESSOS JUDICIAIS
+    // Formato: 0600025-51.2024.6.17.0127 (padrão CNJ)
+    out = out.replace(/\b\d{7}-\d{2}\.\d{4}\.\d{1}\.\d{2}\.\d{4}\b/g, () => {
+      this.stats.processo = (this.stats.processo || 0) + 1;
+      return "[PROCESSO Nº PROTEGIDO]";
+    });
+    
+    // Formato alternativo: 1234567-12.2023.1.23.4567
+    out = out.replace(/\b\d{7}-\d{2}\.\d{4}\.\d{1,2}\.\d{2}\.\d{4}\b/g, () => {
+      this.stats.processo = (this.stats.processo || 0) + 1;
+      return "[PROCESSO Nº PROTEGIDO]";
+    });
 
     // 0) Proteções para não confundir com processo/documento
     const isProcessContext = (src, i, len=20) => {

@@ -70,13 +70,20 @@ anonimizador-extensao/
 
 ## Como Usar
 
-### Demonstração Web (Atual)
+### Demonstração Web (Atual) - ✅ COM SUPORTE A PDFs
 
 O servidor está rodando automaticamente:
 1. Acesse a URL da webview
-2. Cole ou digite texto de processo judicial
-3. Clique em "🔒 Anonimizar"
-4. Copie ou baixe o resultado
+2. **Faça upload de PDF** (digital ou escaneado) OU cole texto
+3. Aguarde extração automática (com OCR se necessário)
+4. Clique em "🔒 Anonimizar"
+5. Copie ou baixe o resultado
+
+**Suporte completo a PDFs:**
+- PDFs digitais: extração instantânea
+- PDFs escaneados: OCR automático (Tesseract.js em português)
+- PDFs mistos: combina extração + OCR
+- Até 50 páginas OCR automáticas, ou todas com confirmação do usuário
 
 ### Extensão Chrome (Para Instalação)
 
@@ -125,6 +132,8 @@ v1.0.0 - Novembro 2025
 
 ## Notas Técnicas
 
-- A demonstração web não inclui processamento de PDFs (por limitações do navegador)
-- A extensão Chrome completa inclui suporte total a PDF + OCR
+- ✅ **A demonstração web AGORA TEM processamento completo de PDFs** (extração + OCR)
+- A extensão Chrome é simplificada (TXT/HTML apenas) para evitar problemas de CSP
+- **Para processar PDFs, use a demonstração web**
+- PDF.js e Tesseract.js carregados via CDN na demo
 - Todos os dados são processados localmente (privacidade garantida)

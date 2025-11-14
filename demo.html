@@ -267,13 +267,21 @@
                 <h3>ℹ️ Sobre esta Demonstração</h3>
                 <p>
                     Esta é uma versão web de demonstração do Anonimizador LexMind. 
-                    Cole ou digite texto de processos judiciais para testar a anonimização automática.
+                    <strong>Agora com suporte a PDFs!</strong> Faça upload de arquivos PDF de processos judiciais ou cole texto diretamente.
                     <strong>Todos os dados são processados localmente no seu navegador - nenhuma informação é enviada para servidores externos.</strong>
                 </p>
             </div>
 
             <section class="input-section">
-                <label for="text-input">Cole o texto do processo judicial aqui:</label>
+                <div style="margin-bottom: 20px;">
+                    <label for="file-input" style="display: block; margin-bottom: 10px; font-weight: 600;">
+                        📄 Selecionar Arquivo PDF ou TXT:
+                    </label>
+                    <input type="file" id="file-input" accept=".pdf,.txt,.html" 
+                           style="padding: 10px; border: 2px solid #ddd; border-radius: 6px; width: 100%; cursor: pointer;">
+                </div>
+
+                <label for="text-input">Ou cole o texto do processo judicial aqui:</label>
                 <textarea id="text-input" placeholder="Exemplo:&#10;&#10;João da Silva, CPF: 123.456.789-10&#10;Endereço: Rua das Flores, 123 - São Paulo/SP, CEP: 01234-567&#10;OAB/SP: 123456&#10;CNPJ: 12.345.678/0001-90&#10;Processo: 1234567-12.2023.1.23.4567&#10;&#10;Digite ou cole seu texto acima e clique em 'Anonimizar'"></textarea>
 
                 <div class="button-group">
@@ -310,10 +318,15 @@
     <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.0.5/dist/tesseract.min.js"></script>
     <script>
+        // Configurar PDF.js worker
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+        
         // Estado da aplicação
         let currentResult = null;
+        let currentFilename = null;
         
         // Elementos do DOM
+        const fileInput = document.getElementById('file-input');
         const textInput = document.getElementById('text-input');
         const anonymizeBtn = document.getElementById('anonymize-btn');
         const clearBtn = document.getElementById('clear-btn');
@@ -330,10 +343,176 @@
         const anonymizer = new Anonymizer();
         
         // Event Listeners
+        fileInput.addEventListener('change', handleFileSelect);
         anonymizeBtn.addEventListener('click', handleAnonymize);
         clearBtn.addEventListener('click', handleClear);
         copyBtn.addEventListener('click', handleCopy);
         downloadBtn.addEventListener('click', handleDownload);
+        
+        // Função para processar arquivo selecionado
+        async function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            currentFilename = file.name;
+            
+            if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+                await handlePDFFile(file);
+            } else {
+                await handleTextFile(file);
+            }
+        }
+        
+        // Função para processar arquivos PDF
+        async function handlePDFFile(file) {
+            try {
+                showMessage('Processando PDF... Isso pode levar alguns segundos.', 'info');
+                
+                const arrayBuffer = await file.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                
+                const numPages = pdf.numPages;
+                let fullText = '';
+                let pagesWithoutText = [];
+                let processedPages = new Set(); // Rastreamento robusto de páginas processadas
+                
+                showMessage(`Extraindo texto de ${numPages} páginas...`, 'info');
+                
+                // Primeira passagem: tentar extrair texto diretamente
+                for (let pageNum = 1; pageNum <= numPages; pageNum++) {
+                    const page = await pdf.getPage(pageNum);
+                    const textContent = await page.getTextContent();
+                    const pageText = textContent.items.map(item => item.str).join(' ');
+                    
+                    if (pageText.trim().length > 50) {
+                        fullText += `\n--- Página ${pageNum} ---\n${pageText}\n`;
+                        processedPages.add(pageNum);
+                    } else {
+                        pagesWithoutText.push(pageNum);
+                    }
+                    
+                    if (pageNum % 5 === 0 || pageNum === numPages) {
+                        showMessage(`Processando página ${pageNum} de ${numPages}...`, 'info');
+                    }
+                }
+                
+                // Se houver páginas sem texto, aplicar OCR
+                if (pagesWithoutText.length > 0) {
+                    const maxOcrPages = 50; // Limite aumentado para processos judiciais
+                    
+                    if (pagesWithoutText.length > maxOcrPages) {
+                        const continuar = confirm(
+                            `⚠️ ATENÇÃO: Este PDF tem ${pagesWithoutText.length} páginas escaneadas que precisam de OCR.\n\n` +
+                            `Processar todas as páginas pode levar muito tempo (aproximadamente ${Math.round(pagesWithoutText.length * 30 / 60)} minutos).\n\n` +
+                            `Deseja processar TODAS as páginas (recomendado para anonimização completa) ou apenas as primeiras ${maxOcrPages}?\n\n` +
+                            `Clique OK para processar TODAS, ou Cancelar para processar apenas ${maxOcrPages} páginas.`
+                        );
+                        
+                        if (!continuar) {
+                            showMessage(`⚠️ Processando apenas ${maxOcrPages} de ${pagesWithoutText.length} páginas. Resultado pode estar incompleto.`, 'info');
+                            pagesWithoutText = pagesWithoutText.slice(0, maxOcrPages);
+                        } else {
+                            showMessage(`📄 Processando TODAS as ${pagesWithoutText.length} páginas com OCR. Isso pode demorar...`, 'info');
+                        }
+                    } else {
+                        showMessage(`📄 ${pagesWithoutText.length} páginas precisam de OCR. Processando...`, 'info');
+                    }
+                    
+                    const ocrText = await processPagesWithOCR(pdf, pagesWithoutText, processedPages);
+                    fullText += ocrText;
+                }
+                
+                if (fullText.trim()) {
+                    textInput.value = fullText;
+                    
+                    // Calcular páginas ignoradas usando rastreamento robusto
+                    const skippedPages = numPages - processedPages.size;
+                    
+                    let msg;
+                    let messageType = 'success';
+                    
+                    if (skippedPages > 0) {
+                        msg = `⚠️ PDF parcialmente processado! ${processedPages.size}/${numPages} páginas extraídas. ${skippedPages} páginas foram ignoradas. Reprocesse para anonimização completa.`;
+                        messageType = 'info';
+                    } else if (pagesWithoutText.length > 0) {
+                        msg = `✅ PDF processado completamente! ${numPages} páginas (${pagesWithoutText.length} via OCR). Clique em "Anonimizar".`;
+                    } else {
+                        msg = `✅ PDF processado com sucesso! ${numPages} páginas extraídas. Clique em "Anonimizar".`;
+                    }
+                    
+                    showMessage(msg, messageType);
+                } else {
+                    showMessage('⚠️ Não foi possível extrair texto do PDF. Tente converter o PDF primeiro.', 'error');
+                }
+            } catch (error) {
+                console.error('Erro ao processar PDF:', error);
+                showMessage('Erro ao processar PDF: ' + error.message, 'error');
+            }
+        }
+        
+        // Função para processar páginas com OCR
+        async function processPagesWithOCR(pdf, pageNumbers, processedPages) {
+            let ocrText = '';
+            
+            for (let i = 0; i < pageNumbers.length; i++) {
+                const pageNum = pageNumbers[i];
+                
+                try {
+                    showMessage(`🔍 OCR na página ${pageNum} (${i + 1}/${pageNumbers.length})...`, 'info');
+                    
+                    // Renderizar página como imagem
+                    const page = await pdf.getPage(pageNum);
+                    const viewport = page.getViewport({ scale: 2.0 });
+                    
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+                    canvas.height = viewport.height;
+                    canvas.width = viewport.width;
+                    
+                    await page.render({
+                        canvasContext: context,
+                        viewport: viewport
+                    }).promise;
+                    
+                    // Aplicar OCR
+                    const { data: { text } } = await Tesseract.recognize(
+                        canvas.toDataURL(),
+                        'por',
+                        {
+                            logger: m => {
+                                if (m.status === 'recognizing text') {
+                                    const percent = Math.round(m.progress * 100);
+                                    showMessage(`🔍 OCR página ${pageNum}: ${percent}%`, 'info');
+                                }
+                            }
+                        }
+                    );
+                    
+                    if (text.trim()) {
+                        ocrText += `\n--- Página ${pageNum} (OCR) ---\n${text}\n`;
+                        processedPages.add(pageNum);
+                    }
+                    
+                } catch (ocrError) {
+                    console.error(`Erro no OCR da página ${pageNum}:`, ocrError);
+                    ocrText += `\n--- Página ${pageNum} (OCR falhou) ---\n`;
+                }
+            }
+            
+            return ocrText;
+        }
+        
+        // Função para processar arquivos de texto
+        async function handleTextFile(file) {
+            try {
+                const text = await file.text();
+                textInput.value = text;
+                showMessage('Arquivo carregado com sucesso!', 'success');
+            } catch (error) {
+                console.error('Erro ao ler arquivo:', error);
+                showMessage('Erro ao ler o arquivo: ' + error.message, 'error');
+            }
+        }
         
         // Função principal de anonimização
         function handleAnonymize() {
@@ -381,9 +560,11 @@
         // Limpar
         function handleClear() {
             textInput.value = '';
+            fileInput.value = '';
             resultSection.style.display = 'none';
             statsSection.style.display = 'none';
             currentResult = null;
+            currentFilename = null;
             messageContainer.innerHTML = '';
         }
         
@@ -417,7 +598,10 @@
             
             const now = new Date();
             const timestamp = now.toISOString().replace(/[-:]/g, '').replace('T', '_').split('.')[0];
-            const filename = `texto_anonimizado_${timestamp}.txt`;
+            
+            const filename = currentFilename 
+                ? currentFilename.replace(/\.([^.]+)$/, `_anonimizado_${timestamp}.txt`)
+                : `texto_anonimizado_${timestamp}.txt`;
             
             const blob = new Blob([currentResult.anonymizedText], { type: 'text/plain;charset=utf-8' });
             const url = URL.createObjectURL(blob);
