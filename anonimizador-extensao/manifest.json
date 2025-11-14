@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "Anonimizador LexMind — Jonathan Gadelha",
+  "version": "1.0.0",
+  "description": "Anonimizador LexMind por Jonathan Gadelha — Para Processos Sigilosos e em Segredo de Justiça, em conformidade com a Resolução CNJ nº 615/2025.",
+  "permissions": [
+    "activeTab"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Anonimizador de Processos"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "short_name": "Anonimizador LexMind"
+}
