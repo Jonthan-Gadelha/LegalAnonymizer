@@ -99,8 +99,8 @@ O servidor está rodando automaticamente:
 
 **Banner Promocional:**
 - Link para plataforma completa: https://lexmind-lelwjv.manus.space/
-- Design em destaque com gradiente rosa/vermelho
-- Call-to-action: "Acessar LexMind Plataforma Completa"
+- Design em destaque com gradiente azul metálico
+- Call-to-action: "Acessar Plataforma Completa"
 
 **Suporte completo a PDFs:**
 - PDFs digitais: extração instantânea
