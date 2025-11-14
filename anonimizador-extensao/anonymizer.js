@@ -193,14 +193,14 @@ class Anonymizer {
       return (this.stats.cpf++, "[CPF PROTEGIDO]");
     });
 
-    // 2) CNPJ - TODAS AS VARIAÇÕES
+    // 2) CNPJ - TODAS AS VARIAÇÕES (PERFEIÇÃO ABSOLUTA)
     // CNPJ com prefixo explícito (CNPJ:, CNPJ nº, etc.)
     out = out.replace(/\b(?:CNPJ|cnpj)[\s:nº]*(\d{2}[.\s]*\d{3}[.\s]*\d{3}[\/\s]*\d{4}[-\s]*\d{2})\b/gi, () => { 
       this.stats.cnpj++; 
       return "[CNPJ PROTEGIDO]"; 
     });
-    // CNPJ formatado (12.345.678/0001-90, 12 345 678 0001 90)
-    out = out.replace(/\b\d{2}[.\s]\d{3}[.\s]\d{3}[\/\s]\d{4}[-\s]\d{2}\b/g, () => { 
+    // CNPJ formatado - QUALQUER COMBINAÇÃO DE SEPARADORES (28.765.811/0001-00, 12 345 678 0001 90)
+    out = out.replace(/\b\d{2}[.\s]?\d{3}[.\s]?\d{3}[\/\s]?\d{4}[-\s]?\d{2}\b/g, () => { 
       this.stats.cnpj++; 
       return "[CNPJ PROTEGIDO]"; 
     });
@@ -256,23 +256,33 @@ class Anonymizer {
       return "[CEP PROTEGIDO]";
     });
 
-    // 6.5) TELEFONES - Fixos e Celulares (MÁXIMA PROTEÇÃO - processos sigilosos)
+    // 6.5) TELEFONES - Fixos e Celulares (MÁXIMA PROTEÇÃO - TODAS AS VARIAÇÕES)
     // Telefone com prefixo explícito (Telefone:, Tel:, Fone:, Celular:, etc.)
-    out = out.replace(/\b(?:Telefone|Tel\.|Tel|Fone|Celular|Cel\.|Cel|Contato)[\s:]*\(?\d{2}\)?[\s\-]?\d{4,5}[\s\-]?\d{4}/gi, () => {
+    out = out.replace(/\b(?:Telefone|Telefones|Tel\.|Tel|Fone|Celular|Cel\.|Cel|Contato)[\s:]*\(?\d{2}\)?[\s\-]?\d{4,5}[\s\-]?\d{4}/gi, () => {
       this.stats.telefone++;
       return "[TELEFONE PROTEGIDO]";
     });
-    // Telefone formatado: (81) 3231-1212, (81) 99962-9192, 81 3231-1212, 8132311212
-    // Aceita início com parêntese ou dígito
+    // Telefone formatado com DDD: (81) 3231-1212, (81) 99962-9192, 81 3231-1212
     out = out.replace(/(?<![0-9])\(?\d{2}\)?[\s\-]?\d{4,5}[\s\-]?\d{4}(?![0-9])/g, () => {
       this.stats.telefone++;
       return "[TELEFONE PROTEGIDO]";
     });
+    // Telefone sem DDD mas com 8 dígitos (fixo: 32267433, celular: 981252689)
+    out = out.replace(/\b\d{8,9}\b/g, (m, idx, src) => {
+      const i = src.indexOf(m);
+      // Verifica contexto de telefone
+      const ctx = src.slice(Math.max(0, i-30), Math.min(src.length, i+30)).toLowerCase();
+      if (/(telefone|tel\.|fone|celular|cel\.|contato|whatsapp|zap)/i.test(ctx)) {
+        this.stats.telefone++;
+        return "[TELEFONE PROTEGIDO]";
+      }
+      return m;
+    });
 
-    // 7) Endereços Completos (Rua X nº 123, Apto 304, Bairro Y)
-    // Padrão completo: Logradouro + nome + número + complemento opcional + bairro opcional
+    // 7) Endereços Completos (MÁXIMA PROTEÇÃO - TODAS AS VARIAÇÕES)
+    // Endereço completo: "Rua Comendador Franco Ferreira, 327 Loja 10 - San Martin"
     out = out.replace(
-      /\b(Rua|Av\.|Avenida|Travessa|Praça|Pra\.|Alameda|Al\.|Rodovia|Estrada|R\.|AV\.|Tv\.|Pça\.|Rod\.|BR-?\d+)\s+[\wÀ-ÿ\s]+(?:,?\s*n[°º]?\s*\d+)?(?:,?\s*(?:Apto?\.?|Apart\.?|Bloco|Sala|Lote|Quadra)\s*[\dA-Z]+)?(?:,?\s*[\wÀ-ÿ\s]+)?/gi,
+      /\b(Rua|Av\.|Avenida|Travessa|Praça|Pra\.|Alameda|Al\.|Rodovia|Estrada|R\.|AV\.|Tv\.|Pça\.|Rod\.|BR-?\d+)\s+[\wÀ-ÿ\s,]+(?:,?\s*n?[°º]?\s*\d+)?(?:\s+(?:Loja|Apto?\.?|Apart\.?|Bloco|Sala|Lote|Quadra|Casa)\s*[\dA-Z]+)?(?:\s*[-–]\s*[\wÀ-ÿ\s]+)?/gi,
       (m) => {
         this.stats.address++;
         return "[ENDEREÇO PROTEGIDO]";
