@@ -61,14 +61,15 @@ anonimizador-extensao/
 ### Dados Anonimizados
 
 - **Números de processos judiciais** (formato CNJ: 0600025-51.2024.6.17.0127) → `[PROCESSO Nº PROTEGIDO]`
-- **CPF** → `[CPF PROTEGIDO]`
-- **CNPJ** → `[CNPJ PROTEGIDO]`
-- **RG** → `[RG PROTEGIDO]`
-- **OAB** → `[OAB PROTEGIDA]`
+- **CPF** (todas variações: formatado, sem formatação, parcialmente mascarado) → `[CPF PROTEGIDO]`
+- **CNPJ** (todas variações: formatado, sem formatação, com "nº") → `[CNPJ PROTEGIDO]`
+- **RG** (todas variações: formatado, com prefixo) → `[RG PROTEGIDO]`
+- **OAB** (com/sem prefixo, múltiplos separadores) → `[OAB PROTEGIDA]`
+- **E-mails** (exemplo: mariana.silva.costa@exemplo.com) → `[E-MAIL PROTEGIDO]`
+- **CEP** (com prefixo explícito: CEP: 50770-610, CEP nº 50770610) → `[CEP PROTEGIDO]`
+- **Endereços completos** (Rua X nº 123, Apto 304, Bairro) → `[ENDEREÇO PROTEGIDO]` ou `[LOCALIZAÇÃO]`
 - **Nomes de pessoas físicas** (2+ palavras capitalizadas) → `[NOME PROTEGIDO]`
 - **Nomes de pessoas jurídicas** (empresas, órgãos) → `[PJ PROTEGIDA]`
-- **Endereços completos** (rua, cidade, estado, CEP) → `[LOCALIZAÇÃO]`
-- **E-mails** → Anonimizados
 - **Partidos políticos** → `[PARTIDO POLÍTICO PROTEGIDO]` ou `[SIGLA PARTIDÁRIA PROTEGIDA]`
 
 ### Suporte a Arquivos

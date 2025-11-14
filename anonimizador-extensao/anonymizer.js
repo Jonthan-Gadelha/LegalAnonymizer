@@ -37,7 +37,7 @@ class Anonymizer {
   }
 
   resetStats() {
-    this.stats = { cpf:0, cnpj:0, rg:0, titulo:0, address:0, namePF:0, namePJ:0, party:0, partySigla:0, oab:0, processo:0 };
+    this.stats = { cpf:0, cnpj:0, rg:0, titulo:0, address:0, email:0, cep:0, namePF:0, namePJ:0, party:0, partySigla:0, oab:0, processo:0 };
   }
 
   // ================= PREVIEW =================
@@ -56,6 +56,8 @@ class Anonymizer {
     );
     collect("rg", /\b\d{1,2}\.?\d{3}\.?\d{3}-?[0-9Xx]\b/g);
     collect("titulo", /(?:t[ií]tulo(?:\s+de)?\s+eleitor)[^.\n\r]{0,40}?\b\d{12}\b/gi);
+    collect("email", /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g);
+    collect("cep", /\b(?:CEP|cep)[\s:nº]*\d{5}[-\s]?\d{3}\b/gi);
     collect("address", new RegExp(`\\b${this.addrPrefixes}\\s+[\\wÀ-ÿ.,º°/-]{3,}`, "gi"));
     collect("party", /\bPartido\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ][\wÀ-ÿ']+(?:\s+(?:dos?|das?|de|do|da|e)\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ][\wÀ-ÿ']+){0,6}\b/gi);
     collect("partySigla", this._partySiglaRegex("gi"));
@@ -74,6 +76,8 @@ class Anonymizer {
     if (s.cnpj) parts.push(`CNPJ: ${s.cnpj}`);
     if (s.rg) parts.push(`RG: ${s.rg}`);
     if (s.titulo) parts.push(`Título: ${s.titulo}`);
+    if (s.email) parts.push(`E-mails: ${s.email}`);
+    if (s.cep) parts.push(`CEP: ${s.cep}`);
     if (s.address) parts.push(`Endereço: ${s.address}`);
     if (s.namePF) parts.push(`Nome PF: ${s.namePF}`);
     if (s.namePJ) parts.push(`Nome PJ: ${s.namePJ}`);
@@ -225,31 +229,53 @@ class Anonymizer {
       this.stats.titulo++; return "[TÍTULO DE ELEITOR PROTEGIDO]";
     });
 
-    // 5) Endereços
+    // 5) E-MAILS (exemplo: mariana.silva.costa@exemplo.com)
+    out = out.replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, () => {
+      this.stats.email++;
+      return "[E-MAIL PROTEGIDO]";
+    });
+
+    // 6) CEP - APENAS com prefixo explícito (evita falsos positivos)
+    // CEP com prefixo explícito (CEP: 50770-610, CEP nº 50770-610, CEP 50770610)
+    out = out.replace(/\b(?:CEP|cep)[\s:nº]*(\d{5}[-\s]?\d{3})\b/gi, () => {
+      this.stats.cep++;
+      return "[CEP PROTEGIDO]";
+    });
+
+    // 7) Endereços Completos (Rua X nº 123, Apto 304, Bairro Y)
+    // Padrão completo: Logradouro + nome + número + complemento opcional + bairro opcional
+    out = out.replace(
+      /\b(Rua|Av\.|Avenida|Travessa|Praça|Pra\.|Alameda|Al\.|Rodovia|Estrada|R\.|AV\.|Tv\.|Pça\.|Rod\.|BR-?\d+)\s+[\wÀ-ÿ\s]+(?:,?\s*n[°º]?\s*\d+)?(?:,?\s*(?:Apto?\.?|Apart\.?|Bloco|Sala|Lote|Quadra)\s*[\dA-Z]+)?(?:,?\s*[\wÀ-ÿ\s]+)?/gi,
+      (m) => {
+        this.stats.address++;
+        return "[ENDEREÇO PROTEGIDO]";
+      }
+    );
+    // Endereços simples (prefixo + nome de rua)
     const addrRe = new RegExp(`\\b${this.addrPrefixes}\\s+[\\wÀ-ÿ.,º°/-]{3,}`, "gi");
     out = out.replace(addrRe, (m) => { this.stats.address++; return "[LOCALIZAÇÃO]"; });
 
-    // 6) Partidos (nome por extenso)
+    // 8) Partidos (nome por extenso)
     out = out.replace(/\bPartido\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ][\wÀ-ÿ']+(?:\s+(?:dos?|das?|de|do|da|e)\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ][\wÀ-ÿ']+){0,6}\b/gi,
       (m) => { this.stats.party++; return "[PARTIDO POLÍTICO PROTEGIDO]"; });
 
-    // 7) Partidos — SIGLAS
+    // 9) Partidos — SIGLAS
     out = out.replace(this._partySiglaRegex("gi"),
       (m) => { this.stats.partySigla++; return "[SIGLA PARTIDÁRIA PROTEGIDA]"; });
 
-    // 8) PJ com sufixo empresarial (e.g., Banco do Brasil S/A, LexMind Ltda)
+    // 10) PJ com sufixo empresarial (e.g., Banco do Brasil S/A, LexMind Ltda)
     out = out.replace(
       /\b([A-ZÁÉÍÓÚÂÊÔÃÕÇ][\wÀ-ÿ']+(?:\s+(?:da|de|do|das|dos|e)\s*[A-ZÁÉÍÓÚÂÊÔÃÕÇ][\wÀ-ÿ']+){0,8})\s+(LTDA|Ltda\.?|S\/A|S\.A\.|EIRELI|MEI?|SS|SA|SAS)\b/gi,
       (m) => { this.stats.namePJ++; return "[PJ PROTEGIDA]"; }
     );
 
-    // 9) PJ por palavra-chave institucional + nomes capitalizados
+    // 11) PJ por palavra-chave institucional + nomes capitalizados
     out = out.replace(
       /\b(Tribunal|Minist[eé]rio|Procuradoria|Prefeitura|Justi[cç]a|Defensoria|Secretaria|Universidade|Fundação|Instituto|Associa[cç][aã]o|Companhia|Banco|Igreja|Conselho|Comiss[aã]o|Comit[eê]|Autarquia|Ag[eê]ncia|Superintend[eê]ncia)\b(?:\s+(?:dos?|das?|de|do|da|e))?(?:\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ][\wÀ-ÿ']+){1,12}\b/gi,
       (m) => { this.stats.namePJ++; return "[PJ PROTEGIDA]"; }
     );
 
-    // 10) Nome PF — restante (2 a 5 tokens capitalizados)
+    // 12) Nome PF — restante (2 a 5 tokens capitalizados)
 
 
     const nameRe = this._nameRegex("g");
