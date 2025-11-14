@@ -91,10 +91,16 @@ anonimizador-extensao/
 
 O servidor está rodando automaticamente:
 1. Acesse a URL da webview
-2. **Faça upload de PDF** (digital ou escaneado) OU cole texto
-3. Aguarde extração automática (com OCR se necessário)
-4. Clique em "🔒 Anonimizar"
-5. Copie ou baixe o resultado
+2. **Veja o banner promocional da Plataforma LexMind completa** (topo da página)
+3. **Faça upload de PDF** (digital ou escaneado) OU cole texto
+4. Aguarde extração automática (com OCR se necessário)
+5. Clique em "🔒 Anonimizar"
+6. Copie ou baixe o resultado
+
+**Banner Promocional:**
+- Link para plataforma completa: https://lexmind-lelwjv.manus.space/
+- Design em destaque com gradiente rosa/vermelho
+- Call-to-action: "Acessar LexMind Plataforma Completa"
 
 **Suporte completo a PDFs:**
 - PDFs digitais: extração instantânea

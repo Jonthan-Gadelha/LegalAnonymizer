@@ -219,6 +219,84 @@
             color: white;
         }
 
+        .promo-banner {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 25px 30px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            animation: gradientShift 3s ease infinite;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+        }
+
+        .promo-banner::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .promo-banner:hover::before {
+            opacity: 0.2;
+        }
+
+        .promo-banner-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .promo-banner h2 {
+            font-size: 24px;
+            margin-bottom: 12px;
+            font-weight: 700;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .promo-banner p {
+            font-size: 16px;
+            margin-bottom: 18px;
+            opacity: 0.95;
+        }
+
+        .promo-banner .cta-button {
+            display: inline-block;
+            background: white;
+            color: #f5576c;
+            padding: 14px 32px;
+            border-radius: 30px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .promo-banner .cta-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+            background: #fff;
+        }
+
+        .promo-icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+            display: block;
+        }
+
         footer {
             background: #34495e;
             color: white;
@@ -261,6 +339,17 @@
             <p>Demonstração - Processos Sigilosos e em Segredo de Justiça</p>
             <p style="font-size: 12px; margin-top: 10px;">Conformidade com a Resolução CNJ nº 615/2025</p>
         </header>
+
+        <div class="promo-banner">
+            <div class="promo-banner-content">
+                <span class="promo-icon">🚀</span>
+                <h2>Conheça Nossa Plataforma Completa!</h2>
+                <p>Todos os Agentes de IA no Direito Eleitoral - Revolucione sua forma de trabalhar</p>
+                <a href="https://lexmind-lelwjv.manus.space/" target="_blank" class="cta-button">
+                    Acessar LexMind Plataforma Completa →
+                </a>
+            </div>
+        </div>
 
         <main>
             <div class="info-box">
