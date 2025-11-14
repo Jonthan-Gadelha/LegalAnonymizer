@@ -14,12 +14,17 @@ Este é o **Anonimizador LexMind**, uma extensão Chrome profissional desenvolvi
 - **Demonstração Web**: `demo.html` + `server.js` (rodando na porta 5000)
 - **Documentação**: `README.md` completo
 
-### Correções Realizadas
+### Correções Realizadas (Versão Final)
 
 - ✅ Erro de sintaxe corrigido no `popup.js` (linha 314 - token `);` extra removido)
 - ✅ Todos os arquivos criados e organizados
 - ✅ Estrutura completa da extensão
-- ✅ Demonstração web funcional
+- ✅ Demonstração web funcional com processamento completo de PDFs
+- ✅ **Anonimização de números de processos judiciais** (formato CNJ)
+- ✅ **Rastreamento robusto de páginas processadas** usando Set
+- ✅ **Regex de nomes seguro** (evita capturar palavras comuns)
+- ✅ **OCR automático** para PDFs escaneados (Tesseract.js)
+- ✅ **Feedback transparente** ao usuário sobre páginas processadas/ignoradas
 
 ## Arquitetura
 
@@ -48,13 +53,16 @@ anonimizador-extensao/
 
 ### Dados Anonimizados
 
-- CPF e CNPJ
-- RG e OAB
-- Nomes de pessoas físicas e jurídicas
-- Endereços completos (rua, cidade, estado, CEP)
-- Números de processos judiciais
-- E-mails
-- Partidos políticos
+- **Números de processos judiciais** (formato CNJ: 0600025-51.2024.6.17.0127) → `[PROCESSO Nº PROTEGIDO]`
+- **CPF** → `[CPF PROTEGIDO]`
+- **CNPJ** → `[CNPJ PROTEGIDO]`
+- **RG** → `[RG PROTEGIDO]`
+- **OAB** → `[OAB PROTEGIDA]`
+- **Nomes de pessoas físicas** (2+ palavras capitalizadas) → `[NOME PROTEGIDO]`
+- **Nomes de pessoas jurídicas** (empresas, órgãos) → `[PJ PROTEGIDA]`
+- **Endereços completos** (rua, cidade, estado, CEP) → `[LOCALIZAÇÃO]`
+- **E-mails** → Anonimizados
+- **Partidos políticos** → `[PARTIDO POLÍTICO PROTEGIDO]` ou `[SIGLA PARTIDÁRIA PROTEGIDA]`
 
 ### Suporte a Arquivos
 
@@ -126,8 +134,9 @@ v1.0.0 - Novembro 2025
 
 ## Próximos Passos Possíveis
 
-- [ ] Download das bibliotecas PDF.js e Tesseract.js para a pasta `lib/`
-- [ ] Testes adicionais com PDFs reais
+- [ ] Testes automatizados para números de processos CNJ
+- [ ] Testes de regressão para PDFs mistos (digital + OCR)
+- [ ] Suporte a nomes únicos com heurísticas mais robustas (opcional)
 - [ ] Publicação na Chrome Web Store (opcional)
 
 ## Notas Técnicas
