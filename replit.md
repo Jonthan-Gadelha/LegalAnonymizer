@@ -14,7 +14,7 @@ Este é o **Anonimizador LexMind**, uma extensão Chrome profissional desenvolvi
 - **Demonstração Web**: `demo.html` + `server.js` (rodando na porta 5000)
 - **Documentação**: `README.md` completo
 
-### Correções Realizadas (Versão Final)
+### Correções Realizadas (Versão Final - Novembro 14, 2025)
 
 - ✅ Erro de sintaxe corrigido no `popup.js` (linha 314 - token `);` extra removido)
 - ✅ Todos os arquivos criados e organizados
@@ -25,13 +25,16 @@ Este é o **Anonimizador LexMind**, uma extensão Chrome profissional desenvolvi
 - ✅ **Regex de nomes seguro** (evita capturar palavras comuns)
 - ✅ **OCR automático** para PDFs escaneados (Tesseract.js)
 - ✅ **Feedback transparente** ao usuário sobre páginas processadas/ignoradas
+- ✅ **SOLUÇÃO DEFINITIVA CPF/TELEFONE**: Algoritmo inteligente com validação de checksum CPF e priorização de estrutura telefônica brasileira
 - ✅ **Padrões de regex ULTRA-PRECISOS** - Captura TODAS as variações de CPF, CNPJ, RG, OAB e telefones:
-  - **CPF**: formatado (051.711.434-80), sem formatação, com prefixo (CPF/MF), parcialmente mascarado (051.***.***-80)
+  - **CPF**: formatado (051.711.434-80), sem formatação (05171143480), com prefixo (CPF/MF), parcialmente mascarado (051.***.***-80)
+  - **CPF sem formatação**: Validação de checksum oficial brasileira (2 dígitos verificadores) para distinção de telefones
   - **CNPJ**: formatado (28.765.811/0001-00), sem formatação, com "nº" (CNPJ nº 10.882.771/0001-03)
   - **RG**: formatado (6421425, 8.469.789), com órgão emissor (6421425 SDS/PE, 8.469.789 SDS/PE), com prefixo (IE/RG:)
   - **OAB**: com prefixo explícito, múltiplos separadores (OAB: PE29561, OAB/SP nº 123456, OAB PE-49456-A)
   - **OAB** sem prefixo: context-aware com UFs brasileiras (PE29561, PE:2001, etc.)
-  - **Telefones**: com DDD ((81) 3231-1212), sem DDD (32267433, 81981252689), com contexto
+  - **Telefones**: com DDD ((81) 3231-1212), sem DDD (32267433, 81981252689), com/sem contexto
+  - **Telefones sem formatação**: Algoritmo de 4 níveis (contexto → estrutura DDD → checksum CPF → fallback)
   - **Nota**: Padrões inteligentes evitam falsos positivos ("PE 2024" em contexto de calendário não é capturado)
 
 ## Arquitetura
@@ -162,3 +165,19 @@ v1.0.0 - Novembro 2025
 - **Para processar PDFs, use a demonstração web**
 - PDF.js e Tesseract.js carregados via CDN na demo
 - Todos os dados são processados localmente (privacidade garantida)
+
+### Algoritmo de Distinção CPF/Telefone (11 dígitos sem formatação)
+
+**Ordem de decisão para números como "81981252689":**
+1. **Contexto explícito de telefone** (Telefone:, Whatsapp, Celular, etc.) → `[TELEFONE PROTEGIDO]`
+2. **Estrutura DDD brasileira** (DDD 11-99 + 3º dígito 8/9) → `[TELEFONE PROTEGIDO]`
+3. **Validação checksum CPF** (algoritmo oficial com 2 dígitos verificadores) → `[CPF PROTEGIDO]`
+4. **Fallback** → `[CPF PROTEGIDO]` (dados sensíveis inválidos)
+
+**Decisão de design:**
+Prioriza telefones sem contexto (comum em tabelas/contratos) antes de checksum CPF. CPFs em documentos oficiais geralmente têm formatação (051.711.434-80) ou prefixo ("CPF:").
+
+**Validação testada:**
+- ✅ Aprovado pelo Architect Agent após múltiplos ciclos de refinamento
+- ✅ Todos os casos críticos do contrato fornecido anonimizados corretamente
+- ✅ Zero falsos negativos em 11 dígitos sem formatação
