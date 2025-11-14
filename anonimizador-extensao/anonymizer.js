@@ -170,8 +170,8 @@ class Anonymizer {
       return /(processo|process|documento|doc\.?|num\.?|número|nº|acórdão|sentença|movimentação)/.test(ctx);
     };
 
-    // 1) CPF - TODAS AS VARIAÇÕES (PERFEIÇÃO ABSOLUTA)
-    // CPF com prefixo explícito (CPF:, CPF nº, CPF/MF, etc.)
+    // 1) CPF - COM PREFIXO OU FORMATADO (MÁXIMA PRIORIDADE)
+    // CPF com prefixo explícito (CPF:, CPF nº, CPF/MF, etc.) - aceita com OU sem separadores
     out = out.replace(/\b(?:CPF|cpf)(?:\/MF)?[\s:nº]*(\d{3}[.\s*]*\d{3}[.\s*]*\d{3}[-\s*]*\d{2})\b/gi, () => { 
       this.stats.cpf++; 
       return "[CPF PROTEGIDO]"; 
@@ -181,19 +181,27 @@ class Anonymizer {
       this.stats.cpf++; 
       return "[CPF PROTEGIDO]"; 
     });
-    // CPF formatado - QUALQUER COMBINAÇÃO DE SEPARADORES (051.711.434-80, 123 456 789 01, 123.456.789-01)
-    out = out.replace(/\b\d{3}[.\s]?\d{3}[.\s]?\d{3}[-\s]?\d{2}\b/g, () => { 
+    // CPF formatado - EXIGE pelo menos UM separador (051.711.434-80, 123 456 789 01, 123.456.789-01)
+    // NÃO captura 11 dígitos sem separadores (ex: 81981252689)
+    out = out.replace(/\b\d{3}[.\s]\d{3}[.\s]\d{3}[-\s]\d{2}\b/g, () => { 
       this.stats.cpf++; 
       return "[CPF PROTEGIDO]"; 
     });
-    // CPF sem formatação (12345678901)
-    out = out.replace(/\b\d{11}\b/g, (m, idx, src) => {
-      const i = src.indexOf(m);
-      if (isProcessContext(src, i)) return m;
-      return (this.stats.cpf++, "[CPF PROTEGIDO]");
+
+    // 2) TELEFONES - COM FORMATAÇÃO OU PREFIXO
+    // Telefone com prefixo explícito (Telefone:, Tel:, Fone:, Celular:, etc.)
+    out = out.replace(/\b(?:Telefone|Telefones|Tel\.|Tel|Fone|Celular|Cel\.|Cel|Contato)[\s:]*(\(?\d{2}\)?[\s\-]?\d{4,5}[\s\-]?\d{4}|\d{8,11})/gi, () => {
+      this.stats.telefone++;
+      return "[TELEFONE PROTEGIDO]";
+    });
+    // Telefone formatado com DDD E SEPARADORES: (81) 3231-1212, (81) 99962-9192, 81-3231-1212
+    out = out.replace(/(?<![0-9])(\(?\d{2}\)[\s\-]\d{4,5}[\s\-]\d{4}|\d{2}\s\d{4,5}[\s\-]\d{4})(?![0-9])/g, () => {
+      this.stats.telefone++;
+      return "[TELEFONE PROTEGIDO]";
     });
 
-    // 2) CNPJ - TODAS AS VARIAÇÕES (PERFEIÇÃO ABSOLUTA)
+    // 3) CNPJ - COM PREFIXO OU FORMATADO
+   
     // CNPJ com prefixo explícito (CNPJ:, CNPJ nº, etc.)
     out = out.replace(/\b(?:CNPJ|cnpj)[\s:nº]*(\d{2}[.\s]*\d{3}[.\s]*\d{3}[\/\s]*\d{4}[-\s]*\d{2})\b/gi, () => { 
       this.stats.cnpj++; 
@@ -211,7 +219,86 @@ class Anonymizer {
       return (this.stats.cnpj++, "[CNPJ PROTEGIDO]");
     });
 
-    // 3) RG - TODAS AS VARIAÇÕES (PERFEIÇÃO ABSOLUTA)
+    // 3.5) CPF E TELEFONES SEM FORMATAÇÃO - COM DISTINÇÃO INTELIGENTE
+    // Processa 11 dígitos, 8 dígitos e 9 dígitos
+    
+    // Telefone fixo brasileiro (8 dígitos começando com [2-5]: 32267433)
+    out = out.replace(/\b[2-5]\d{7}\b/g, () => {
+      this.stats.telefone++;
+      return "[TELEFONE PROTEGIDO]";
+    });
+    
+    // Telefone celular sem DDD (9 dígitos começando com 9: 981252689)
+    out = out.replace(/\b9\d{8}\b/g, () => {
+      this.stats.telefone++;
+      return "[TELEFONE PROTEGIDO]";
+    });
+    
+    // 11 DÍGITOS: Pode ser CPF OU Telefone - ORDEM CRÍTICA
+    out = out.replace(/\b\d{11}\b/g, (m, idx, src) => {
+      const i = src.indexOf(m);
+      
+      // Se contexto de processo, não anonimizar
+      if (isProcessContext(src, i)) return m;
+      
+      // 1º: CONTEXTO EXPLÍCITO DE TELEFONE (máxima prioridade)
+      const ctx = src.slice(Math.max(0, i-50), Math.min(src.length, i+50)).toLowerCase();
+      const hasPhoneContext = /(telefone|tel\.|fone|celular|cel\.|contato|whatsapp|whats|zap|mobile|wpp|ligação|ligacao|ramal|ddd)/i.test(ctx);
+      
+      if (hasPhoneContext) {
+        this.stats.telefone++;
+        return "[TELEFONE PROTEGIDO]";
+      }
+      
+      // 2º: ESTRUTURA DDD BRASILEIRA (ANTES de checksum CPF)
+      // Prioriza telefones sem contexto (comum em documentos)
+      const ddd = m.substring(0, 2);
+      const thirdDigit = m.charAt(2);
+      
+      if (/^[1-9][1-9]$/.test(ddd) && (thirdDigit === '9' || thirdDigit === '8')) {
+        this.stats.telefone++;
+        return "[TELEFONE PROTEGIDO]";
+      }
+      
+      // 3º: VALIDAÇÃO CHECKSUM CPF (CPFs sem formatação que não são telefones)
+      const isValidCPF = (cpf) => {
+        // CPF não pode ter todos os dígitos iguais
+        if (/^(\d)\1{10}$/.test(cpf)) return false;
+        
+        let sum = 0;
+        let remainder;
+        
+        // Calcula primeiro dígito verificador
+        for (let i = 1; i <= 9; i++) {
+          sum += parseInt(cpf.substring(i-1, i)) * (11 - i);
+        }
+        remainder = (sum * 10) % 11;
+        if (remainder === 10 || remainder === 11) remainder = 0;
+        if (remainder !== parseInt(cpf.substring(9, 10))) return false;
+        
+        sum = 0;
+        // Calcula segundo dígito verificador
+        for (let i = 1; i <= 10; i++) {
+          sum += parseInt(cpf.substring(i-1, i)) * (12 - i);
+        }
+        remainder = (sum * 10) % 11;
+        if (remainder === 10 || remainder === 11) remainder = 0;
+        if (remainder !== parseInt(cpf.substring(10, 11))) return false;
+        
+        return true;
+      };
+      
+      if (isValidCPF(m)) {
+        this.stats.cpf++;
+        return "[CPF PROTEGIDO]";
+      }
+      
+      // 4º: FALLBACK - CPF inválido mas dados sensíveis
+      this.stats.cpf++;
+      return "[CPF PROTEGIDO]";
+    });
+
+    // 4) RG - TODAS AS VARIAÇÕES (PERFEIÇÃO ABSOLUTA)
     // RG com órgão emissor - ACEITA 5-9 DÍGITOS com ou sem formatação
     // Exemplos: 6421425 SDS/PE, 8.469.789 SDS/PE, 1234567 SSP/SP, 12345 SDS-PE, 1234567 SSP-SP
     out = out.replace(/\b(?:\d[.\s]?){5,9}\d?[-\s]?[0-9Xx]?\s+(?:SDS|SSP|IFP|DETRAN|SESP|PC|PM|DIC|IIRGD|DGPC|IPF|ITEP|SESDC|EST|POF|MEX|CGPI|CTPS|DPF|MAER|MME|SECC|CBM|CRM|CREA|OAB)[\s\/\-]*[A-Z]{2}\b/gi, () => { 
@@ -234,7 +321,7 @@ class Anonymizer {
       return "[RG PROTEGIDO]"; 
     });
 
-    // 4) Título de Eleitor — com rótulo próximo
+    // 5) Título de Eleitor — com rótulo próximo
     out = out.replace(/((?:t[ií]tulo(?:\s+de)?\s+eleitor)[^.\n\r]{0,40}?)(\b\d{12}\b)/gi,
       (m, p1) => { this.stats.titulo++; return `${p1}[TÍTULO DE ELEITOR PROTEGIDO]`; });
     // Fallback (12 dígitos isolados, não em contexto de processo)
@@ -244,43 +331,20 @@ class Anonymizer {
       this.stats.titulo++; return "[TÍTULO DE ELEITOR PROTEGIDO]";
     });
 
-    // 5) E-MAILS (exemplo: mariana.silva.costa@exemplo.com)
+    // 6) E-MAILS (exemplo: mariana.silva.costa@exemplo.com)
     out = out.replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, () => {
       this.stats.email++;
       return "[E-MAIL PROTEGIDO]";
     });
 
-    // 6) CEP - APENAS com prefixo explícito (evita falsos positivos)
+    // 7) CEP - APENAS com prefixo explícito (evita falsos positivos)
     // CEP com prefixo explícito (CEP: 50770-610, CEP nº 50770-610, CEP 50770610)
     out = out.replace(/\b(?:CEP|cep)[\s:nº]*(\d{5}[-\s]?\d{3})\b/gi, () => {
       this.stats.cep++;
       return "[CEP PROTEGIDO]";
     });
 
-    // 6.5) TELEFONES - Fixos e Celulares (MÁXIMA PROTEÇÃO - TODAS AS VARIAÇÕES)
-    // Telefone com prefixo explícito (Telefone:, Tel:, Fone:, Celular:, etc.)
-    out = out.replace(/\b(?:Telefone|Telefones|Tel\.|Tel|Fone|Celular|Cel\.|Cel|Contato)[\s:]*\(?\d{2}\)?[\s\-]?\d{4,5}[\s\-]?\d{4}/gi, () => {
-      this.stats.telefone++;
-      return "[TELEFONE PROTEGIDO]";
-    });
-    // Telefone formatado com DDD: (81) 3231-1212, (81) 99962-9192, 81 3231-1212
-    out = out.replace(/(?<![0-9])\(?\d{2}\)?[\s\-]?\d{4,5}[\s\-]?\d{4}(?![0-9])/g, () => {
-      this.stats.telefone++;
-      return "[TELEFONE PROTEGIDO]";
-    });
-    // Telefone sem DDD mas com 8 dígitos (fixo: 32267433, celular: 981252689)
-    out = out.replace(/\b\d{8,9}\b/g, (m, idx, src) => {
-      const i = src.indexOf(m);
-      // Verifica contexto de telefone
-      const ctx = src.slice(Math.max(0, i-30), Math.min(src.length, i+30)).toLowerCase();
-      if (/(telefone|tel\.|fone|celular|cel\.|contato|whatsapp|zap)/i.test(ctx)) {
-        this.stats.telefone++;
-        return "[TELEFONE PROTEGIDO]";
-      }
-      return m;
-    });
-
-    // 7) Endereços Completos (MÁXIMA PROTEÇÃO - TODAS AS VARIAÇÕES)
+    // 8) Endereços Completos (MÁXIMA PROTEÇÃO - TODAS AS VARIAÇÕES)
     // Endereço completo: "Rua Comendador Franco Ferreira, 327 Loja 10 - San Martin"
     out = out.replace(
       /\b(Rua|Av\.|Avenida|Travessa|Praça|Pra\.|Alameda|Al\.|Rodovia|Estrada|R\.|AV\.|Tv\.|Pça\.|Rod\.|BR-?\d+)\s+[\wÀ-ÿ\s,]+(?:,?\s*n?[°º]?\s*\d+)?(?:\s+(?:Loja|Apto?\.?|Apart\.?|Bloco|Sala|Lote|Quadra|Casa)\s*[\dA-Z]+)?(?:\s*[-–]\s*[\wÀ-ÿ\s]+)?/gi,
@@ -293,27 +357,27 @@ class Anonymizer {
     const addrRe = new RegExp(`\\b${this.addrPrefixes}\\s+[\\wÀ-ÿ.,º°/-]{3,}`, "gi");
     out = out.replace(addrRe, (m) => { this.stats.address++; return "[LOCALIZAÇÃO]"; });
 
-    // 8) Partidos (nome por extenso)
+    // 9) Partidos (nome por extenso)
     out = out.replace(/\bPartido\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ][\wÀ-ÿ']+(?:\s+(?:dos?|das?|de|do|da|e)\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ][\wÀ-ÿ']+){0,6}\b/gi,
       (m) => { this.stats.party++; return "[PARTIDO POLÍTICO PROTEGIDO]"; });
 
-    // 9) Partidos — SIGLAS
+    // 10) Partidos — SIGLAS
     out = out.replace(this._partySiglaRegex("gi"),
       (m) => { this.stats.partySigla++; return "[SIGLA PARTIDÁRIA PROTEGIDA]"; });
 
-    // 10) PJ com sufixo empresarial (e.g., Banco do Brasil S/A, LexMind Ltda)
+    // 11) PJ com sufixo empresarial (e.g., Banco do Brasil S/A, LexMind Ltda)
     out = out.replace(
       /\b([A-ZÁÉÍÓÚÂÊÔÃÕÇ][\wÀ-ÿ']+(?:\s+(?:da|de|do|das|dos|e)\s*[A-ZÁÉÍÓÚÂÊÔÃÕÇ][\wÀ-ÿ']+){0,8})\s+(LTDA|Ltda\.?|S\/A|S\.A\.|EIRELI|MEI?|SS|SA|SAS)\b/gi,
       (m) => { this.stats.namePJ++; return "[PJ PROTEGIDA]"; }
     );
 
-    // 11) PJ por palavra-chave institucional + nomes capitalizados
+    // 12) PJ por palavra-chave institucional + nomes capitalizados
     out = out.replace(
       /\b(Tribunal|Minist[eé]rio|Procuradoria|Prefeitura|Justi[cç]a|Defensoria|Secretaria|Universidade|Fundação|Instituto|Associa[cç][aã]o|Companhia|Banco|Igreja|Conselho|Comiss[aã]o|Comit[eê]|Autarquia|Ag[eê]ncia|Superintend[eê]ncia)\b(?:\s+(?:dos?|das?|de|do|da|e))?(?:\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ][\wÀ-ÿ']+){1,12}\b/gi,
       (m) => { this.stats.namePJ++; return "[PJ PROTEGIDA]"; }
     );
 
-    // 12) Nome PF — restante (2 a 5 tokens capitalizados)
+    // 13) Nome PF — restante (2 a 5 tokens capitalizados)
 
 
     const nameRe = this._nameRegex("g");
