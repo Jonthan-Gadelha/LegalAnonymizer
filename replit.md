@@ -25,6 +25,13 @@ Este é o **Anonimizador LexMind**, uma extensão Chrome profissional desenvolvi
 - ✅ **Regex de nomes seguro** (evita capturar palavras comuns)
 - ✅ **OCR automático** para PDFs escaneados (Tesseract.js)
 - ✅ **Feedback transparente** ao usuário sobre páginas processadas/ignoradas
+- ✅ **Padrões de regex inteligentes e SEGUROS** - Captura variações de CPF, CNPJ, OAB e RG:
+  - CPF: formatado, sem formatação, com prefixo, parcialmente mascarado (051.***.***-80)
+  - CNPJ: formatado, sem formatação, com "nº" (CNPJ nº 10.882.771/0001-03)
+  - OAB: com prefixo explícito, múltiplos separadores (OAB: PE29561, OAB/SP nº 123456, OAB PE-49456-A)
+  - OAB sem prefixo: context-aware com UFs brasileiras (PE29561, PE:2001, etc.)
+  - RG: formatado, com prefixo, diferentes tamanhos (RG: 1.234.567-8)
+  - **Nota**: Padrões inteligentes evitam falsos positivos ("PE 2024" em contexto de calendário não é capturado)
 
 ## Arquitetura
 

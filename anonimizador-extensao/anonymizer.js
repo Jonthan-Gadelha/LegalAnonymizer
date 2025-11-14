@@ -117,18 +117,41 @@ class Anonymizer {
     this.resetStats();
     let out = text;
 
-    // 0.1) Proteção para números da OAB (Ex: PE29561, PE49456-A)
-    out = out.replace(/\b[A-Z]{2}\d{3,6}(?:-[A-Z])?\b/g, () => { this.stats.oab++; return "[OAB PROTEGIDA]"; });
-
-    // 0.2) ANONIMIZAR NÚMEROS DE PROCESSOS JUDICIAIS
-    // Formato: 0600025-51.2024.6.17.0127 (padrão CNJ)
-    out = out.replace(/\b\d{7}-\d{2}\.\d{4}\.\d{1}\.\d{2}\.\d{4}\b/g, () => {
-      this.stats.processo = (this.stats.processo || 0) + 1;
-      return "[PROCESSO Nº PROTEGIDO]";
+    // 0.1) OAB - Nível 1: Com prefixo explícito (sempre captura)
+    // Aceita separadores múltiplos: espaço, :, /, nº, n.º
+    out = out.replace(/\b(?:OAB|oab)(?:[\s:\/]*(?:n(?:\.?º|º))?[\s:\/]*)([A-Z]{2})(?:[\s\-:\/]*(?:n(?:\.?º|º))?[\s\-:\/]*)(\d{3,6})(?:[\s\-]?([A-Z]))?\b/gi, () => { 
+      this.stats.oab++; 
+      return "[OAB PROTEGIDA]"; 
     });
     
-    // Formato alternativo: 1234567-12.2023.1.23.4567
-    out = out.replace(/\b\d{7}-\d{2}\.\d{4}\.\d{1,2}\.\d{2}\.\d{4}\b/g, () => {
+    // 0.2) OAB - Nível 2: Sem prefixo (context-aware para UFs válidas)
+    // Captura UF+números com separadores: espaço, -, :, /
+    out = out.replace(/(?<![A-Z0-9])(AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)[\s\-:\/]*(\d{3,6})(?:[\s\-]?([A-Z]))?/g, (match, uf, digits, suffix, offset) => {
+      // Para 3 dígitos, 5-6 dígitos, ou com sufixo letra: sempre anonimizar
+      if (digits.length !== 4 || parseInt(digits) < 1900 || parseInt(digits) > 2099 || suffix) {
+        this.stats.oab++;
+        return "[OAB PROTEGIDA]";
+      }
+      
+      // Para 4 dígitos no range 1900-2099: ANONIMIZAR por padrão EXCETO se tem contexto claro de ano
+      const ctx = out.slice(Math.max(0, offset - 50), Math.min(out.length, offset + 50)).toLowerCase();
+      
+      // NÃO anonimizar APENAS se tem contexto CLARO de calendário/ano E não tem marcadores estruturais/legais
+      const hasYearContext = /\b(calendário|calend|agenda|ano|eleitoral|eleição|eleições|pleito|edital)\b/.test(ctx);
+      const hasStructuralMarkers = /[\(\)\[\]:;,]|–|—/.test(match) || /[\(\)\[\]:;,]|–|—/.test(ctx.slice(ctx.length / 2 - 10, ctx.length / 2 + 10));
+      const hasLegalContext = /\b(oab|adv|advogado|advogada|inscri|inscrito|proc|procurador|doutor|doutora|dr\.|dra\.|patrono|causídico)\b/.test(ctx);
+      
+      if (hasYearContext && !hasStructuralMarkers && !hasLegalContext) {
+        return match; // NÃO anonimizar (claramente um ano)
+      }
+      
+      // Caso padrão: ANONIMIZAR (é OAB)
+      this.stats.oab++;
+      return "[OAB PROTEGIDA]";
+    });
+
+    // 0.3) PROCESSOS JUDICIAIS - Formato CNJ (0600025-51.2024.6.17.0127)
+    out = out.replace(/\b\d{7}[\s\-]\d{2}[.\s]\d{4}[.\s]\d{1,2}[.\s]\d{2}[.\s]\d{4}\b/g, () => {
       this.stats.processo = (this.stats.processo || 0) + 1;
       return "[PROCESSO Nº PROTEGIDO]";
     });
@@ -139,24 +162,58 @@ class Anonymizer {
       return /(processo|process|documento|doc\.?|num\.?|número|nº|acórdão|sentença|movimentação)/.test(ctx);
     };
 
-    // 1) CPF (formatado e sem pontuação)
-    out = out.replace(/\b\d{3}[.\s]?\d{3}[.\s]?\d{3}[-\s]?\d{2}\b/g, () => { this.stats.cpf++; return "[CPF PROTEGIDO]"; });
+    // 1) CPF - TODAS AS VARIAÇÕES
+    // CPF com prefixo explícito (CPF:, CPF nº, etc.)
+    out = out.replace(/\b(?:CPF|cpf)[\s:nº]*(\d{3}[.\s*]*\d{3}[.\s*]*\d{3}[-\s*]*\d{2})\b/gi, () => { 
+      this.stats.cpf++; 
+      return "[CPF PROTEGIDO]"; 
+    });
+    // CPF parcialmente mascarado (051.***.***-80)
+    out = out.replace(/\b\d{3}[.\s*]+\*{3}[.\s*]+\*{3}[-\s*]+\d{2}\b/g, () => { 
+      this.stats.cpf++; 
+      return "[CPF PROTEGIDO]"; 
+    });
+    // CPF formatado (123.456.789-01, 123 456 789 01)
+    out = out.replace(/\b\d{3}[.\s]\d{3}[.\s]\d{3}[-\s]\d{2}\b/g, () => { 
+      this.stats.cpf++; 
+      return "[CPF PROTEGIDO]"; 
+    });
+    // CPF sem formatação (12345678901)
     out = out.replace(/\b\d{11}\b/g, (m, idx, src) => {
       const i = src.indexOf(m);
       if (isProcessContext(src, i)) return m;
       return (this.stats.cpf++, "[CPF PROTEGIDO]");
     });
 
-    // 2) CNPJ (formatado e sem pontuação)
-    out = out.replace(/\b\d{2}[.\s]?\d{3}[.\s]?\d{3}[\/\s]?\d{4}[-\s]?\d{2}\b/g, () => { this.stats.cnpj++; return "[CNPJ PROTEGIDO]"; });
+    // 2) CNPJ - TODAS AS VARIAÇÕES
+    // CNPJ com prefixo explícito (CNPJ:, CNPJ nº, etc.)
+    out = out.replace(/\b(?:CNPJ|cnpj)[\s:nº]*(\d{2}[.\s]*\d{3}[.\s]*\d{3}[\/\s]*\d{4}[-\s]*\d{2})\b/gi, () => { 
+      this.stats.cnpj++; 
+      return "[CNPJ PROTEGIDO]"; 
+    });
+    // CNPJ formatado (12.345.678/0001-90, 12 345 678 0001 90)
+    out = out.replace(/\b\d{2}[.\s]\d{3}[.\s]\d{3}[\/\s]\d{4}[-\s]\d{2}\b/g, () => { 
+      this.stats.cnpj++; 
+      return "[CNPJ PROTEGIDO]"; 
+    });
+    // CNPJ sem formatação (12345678000190)
     out = out.replace(/\b\d{14}\b/g, (m, idx, src) => {
       const i = src.indexOf(m);
       if (isProcessContext(src, i)) return m;
       return (this.stats.cnpj++, "[CNPJ PROTEGIDO]");
     });
 
-    // 3) RG
-    out = out.replace(/\b\d{1,2}\.?\d{3}\.?\d{3}-?[0-9Xx]\b/g, () => { this.stats.rg++; return "[RG PROTEGIDO]"; });
+    // 3) RG - TODAS AS VARIAÇÕES
+    // RG com prefixo explícito (RG:, RG nº, etc.)
+    out = out.replace(/\b(?:RG|rg)[\s:nº]*(\d{1,2}[.\s]*\d{3}[.\s]*\d{3}[-\s]*[0-9Xx])\b/gi, () => { 
+      this.stats.rg++; 
+      return "[RG PROTEGIDO]"; 
+    });
+    // RG formatado (1.234.567-8, 12.345.678-9)
+    out = out.replace(/\b\d{1,2}[.\s]\d{3}[.\s]\d{3}[-\s][0-9Xx]\b/g, () => { 
+      this.stats.rg++; 
+      return "[RG PROTEGIDO]"; 
+    });
 
     // 4) Título de Eleitor — com rótulo próximo
     out = out.replace(/((?:t[ií]tulo(?:\s+de)?\s+eleitor)[^.\n\r]{0,40}?)(\b\d{12}\b)/gi,
