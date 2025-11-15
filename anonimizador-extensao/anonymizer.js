@@ -171,19 +171,19 @@ class Anonymizer {
     };
 
     // 1) CPF - COM PREFIXO OU FORMATADO (MÁXIMA PRIORIDADE)
-    // CPF com prefixo explícito (CPF:, CPF nº, CPF/MF, etc.) - aceita com OU sem separadores
-    out = out.replace(/\b(?:CPF|cpf)(?:\/MF)?[\s:nº]*(\d{3}[.\s*]*\d{3}[.\s*]*\d{3}[-\s*]*\d{2})\b/gi, () => { 
+    // CPF com prefixo explícito - ACEITA ESPAÇOS ENTRE DÍGITOS
+    out = out.replace(/\b(?:CPF|cpf)(?:\/MF)?[\s:nº]*(\d[\s]*\d[\s]*\d[\s.]*\d[\s]*\d[\s]*\d[\s.]*\d[\s]*\d[\s]*\d[\s\-]*\d[\s]*\d)\b/gi, () => { 
       this.stats.cpf++; 
       return "[CPF PROTEGIDO]"; 
     });
-    // CPF parcialmente mascarado (051.***.***-80)
-    out = out.replace(/\b\d{3}[.\s*]+\*{3}[.\s*]+\*{3}[-\s*]+\d{2}\b/g, () => { 
+    // CPF parcialmente mascarado (051.***.***-80, 051 . *** . *** - 80)
+    out = out.replace(/\b\d[\s]*\d[\s]*\d[\s.]*\*{3}[\s.]*\*{3}[\s\-]*\d[\s]*\d\b/g, () => { 
       this.stats.cpf++; 
       return "[CPF PROTEGIDO]"; 
     });
-    // CPF formatado - EXIGE pelo menos UM separador (051.711.434-80, 123 456 789 01, 123.456.789-01)
-    // NÃO captura 11 dígitos sem separadores (ex: 81981252689)
-    out = out.replace(/\b\d{3}[.\s]\d{3}[.\s]\d{3}[-\s]\d{2}\b/g, () => { 
+    // CPF formatado - ACEITA ESPAÇOS ENTRE CADA DÍGITO (051.711.434-80, 051 . 7 11 . 434 - 80)
+    // EXIGE pelo menos UM separador (ponto, hífen OU espaço)
+    out = out.replace(/\b\d[\s]*\d[\s]*\d[\s.]+\d[\s]*\d[\s]*\d[\s.]+\d[\s]*\d[\s]*\d[\s\-]+\d[\s]*\d\b/g, () => { 
       this.stats.cpf++; 
       return "[CPF PROTEGIDO]"; 
     });
@@ -202,15 +202,21 @@ class Anonymizer {
 
     // 3) CNPJ - COM PREFIXO OU FORMATADO
    
-    // CNPJ com prefixo explícito (CNPJ:, CNPJ nº, etc.)
-    out = out.replace(/\b(?:CNPJ|cnpj)[\s:nº]*(\d{2}[.\s]*\d{3}[.\s]*\d{3}[\/\s]*\d{4}[-\s]*\d{2})\b/gi, () => { 
+    // CNPJ com prefixo explícito - ACEITA ESPAÇOS ENTRE DÍGITOS, separadores OPCIONAIS
+    out = out.replace(/\b(?:CNPJ|cnpj)[\s:nº]*(\d[\s]*\d[\s.]*\d[\s]*\d[\s]*\d[\s.]*\d[\s]*\d[\s]*\d[\s\/]*\d[\s]*\d[\s]*\d[\s]*\d[\s\-]*\d[\s]*\d)\b/gi, () => { 
       this.stats.cnpj++; 
       return "[CNPJ PROTEGIDO]"; 
     });
-    // CNPJ formatado - QUALQUER COMBINAÇÃO DE SEPARADORES (28.765.811/0001-00, 12 345 678 0001 90)
-    out = out.replace(/\b\d{2}[.\s]?\d{3}[.\s]?\d{3}[\/\s]?\d{4}[-\s]?\d{2}\b/g, () => { 
-      this.stats.cnpj++; 
-      return "[CNPJ PROTEGIDO]"; 
+    // CNPJ formatado - PADRÃO UNIVERSAL: 14 dígitos com QUALQUER separador (ponto, barra, hífen, espaço)
+    // Lookahead garante que há pelo menos um caractere não-dígito
+    out = out.replace(/\b(?=[\d\s.\/\-]*[.\s\/\-])(?=[\d\s.\/\-]*\d)(\d[\s.\/\-]*){14}\b/g, (match) => {
+      // Remove todos os separadores e verifica se tem exatamente 14 dígitos
+      const digits = match.replace(/[^\d]/g, '');
+      if (digits.length === 14) {
+        this.stats.cnpj++;
+        return "[CNPJ PROTEGIDO]";
+      }
+      return match;
     });
     // CNPJ sem formatação (12345678000190)
     out = out.replace(/\b\d{14}\b/g, (m, idx, src) => {
