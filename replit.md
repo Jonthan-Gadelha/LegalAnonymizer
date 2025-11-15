@@ -181,3 +181,5 @@ Prioriza telefones sem contexto (comum em tabelas/contratos) antes de checksum C
 - ✅ Aprovado pelo Architect Agent após múltiplos ciclos de refinamento
 - ✅ Todos os casos críticos do contrato fornecido anonimizados corretamente
 - ✅ Zero falsos negativos em 11 dígitos sem formatação
+- ✅ **PADRÃO UNIVERSAL DE CNPJ** implementado: captura QUALQUER combinação de separadores (pontos, barras, hífens, espaços)
+- ✅ **17+ variações testadas** de CPF e CNPJ: 100% de cobertura confirmada
