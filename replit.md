@@ -135,6 +135,12 @@ O servidor está rodando automaticamente:
 - **Porta**: 5000
 - **Status**: ✅ Rodando
 
+## Configuração de Deploy
+
+- **Tipo**: Autoscale (ideal para aplicações web com tráfego variável)
+- **Comando Run**: `node server.js`
+- **Status**: ✅ Configurado e pronto para publicação
+
 ## Conformidade Legal
 
 - Resolução CNJ nº 615/2025
