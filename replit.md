@@ -102,7 +102,7 @@ O servidor está rodando automaticamente:
 6. Copie ou baixe o resultado
 
 **Banner Promocional:**
-- Link para plataforma completa: https://lexmind-lelwjv.manus.space/
+- Link para plataforma completa: https://lexmindai-ygwzn8uw.manus.space/
 - Design em destaque com gradiente azul metálico
 - Call-to-action: "Acessar Plataforma Completa"
 
