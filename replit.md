@@ -34,7 +34,10 @@ Este é o **Anonimizador LexMind**, uma extensão Chrome profissional desenvolvi
   - **OAB**: com prefixo explícito, múltiplos separadores (OAB: PE29561, OAB/SP nº 123456, OAB PE-49456-A)
   - **OAB** sem prefixo: context-aware com UFs brasileiras (PE29561, PE:2001, etc.)
   - **Telefones**: com DDD ((81) 3231-1212), sem DDD (32267433, 81981252689), com/sem contexto
+  - **Telefones com espaços**: (61) 98333 - 5315, (81) 99962 - 9192 (aceita espaços entre dígitos)
   - **Telefones sem formatação**: Algoritmo de 4 níveis (contexto → estrutura DDD → checksum CPF → fallback)
+  - **CEP com espaços**: 72308 - 429, 70297 - 400 (aceita espaços ao redor do hífen)
+  - **Endereços de Brasília/DF**: QR 401, Conjunto 29, Lote 16 / QS 410, Conjunto D, Lote 05 (formato quadra/conjunto/lote)
   - **Nota**: Padrões inteligentes evitam falsos positivos ("PE 2024" em contexto de calendário não é capturado)
 
 ## Arquitetura

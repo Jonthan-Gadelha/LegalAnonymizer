@@ -189,13 +189,13 @@ class Anonymizer {
     });
 
     // 2) TELEFONES - COM FORMATAÇÃO OU PREFIXO
-    // Telefone com prefixo explícito (Telefone:, Tel:, Fone:, Celular:, etc.)
-    out = out.replace(/\b(?:Telefone|Telefones|Tel\.|Tel|Fone|Celular|Cel\.|Cel|Contato)[\s:]*(\(?\d{2}\)?[\s\-]?\d{4,5}[\s\-]?\d{4}|\d{8,11})/gi, () => {
+    // Telefone com prefixo explícito (Telefone:, Tel:, Fone:, Celular:, etc.) - ACEITA ESPAÇOS ENTRE DÍGITOS
+    out = out.replace(/\b(?:Telefone|Telefones|Tel\.|Tel|Fone|Celular|Cel\.|Cel|Contato)[\s:]*(\(?\d{2}\)?[\s\-]*\d[\s]*\d[\s]*\d[\s]*\d[\s]*\d?[\s\-]*\d[\s]*\d[\s]*\d[\s]*\d|\d{8,11})/gi, () => {
       this.stats.telefone++;
       return "[TELEFONE PROTEGIDO]";
     });
-    // Telefone formatado com DDD E SEPARADORES: (81) 3231-1212, (81) 99962-9192, 81-3231-1212
-    out = out.replace(/(?<![0-9])(\(?\d{2}\)[\s\-]\d{4,5}[\s\-]\d{4}|\d{2}\s\d{4,5}[\s\-]\d{4})(?![0-9])/g, () => {
+    // Telefone formatado com DDD E SEPARADORES - ACEITA ESPAÇOS ENTRE DÍGITOS: (61) 98333 - 5315, (81) 3231-1212
+    out = out.replace(/(?<![0-9])\(?\d{2}\)[\s\-]*\d[\s]*\d[\s]*\d[\s]*\d[\s]*\d?[\s\-]+\d[\s]*\d[\s]*\d[\s]*\d(?![0-9])/g, () => {
       this.stats.telefone++;
       return "[TELEFONE PROTEGIDO]";
     });
@@ -344,14 +344,24 @@ class Anonymizer {
     });
 
     // 7) CEP - APENAS com prefixo explícito (evita falsos positivos)
-    // CEP com prefixo explícito (CEP: 50770-610, CEP nº 50770-610, CEP 50770610)
-    out = out.replace(/\b(?:CEP|cep)[\s:nº]*(\d{5}[-\s]?\d{3})\b/gi, () => {
+    // CEP com prefixo explícito - ACEITA ESPAÇOS AO REDOR DO HÍFEN (CEP: 72308 - 429, CEP 50770-610)
+    out = out.replace(/\b(?:CEP|cep)[\s:nº]*(\d[\s]*\d[\s]*\d[\s]*\d[\s]*\d[\s]*[-\s][\s]*\d[\s]*\d[\s]*\d)\b/gi, () => {
       this.stats.cep++;
       return "[CEP PROTEGIDO]";
     });
 
     // 8) Endereços Completos (MÁXIMA PROTEÇÃO - TODAS AS VARIAÇÕES)
-    // Endereço completo: "Rua Comendador Franco Ferreira, 327 Loja 10 - San Martin"
+    
+    // 8.1) Endereços de Brasília/DF: QR 401, Conjunto 29, Lote 16 / QS 410, Conjunto D, Lote 05
+    out = out.replace(
+      /\b(Q[RSNELIMCFAB]|SQ[NSM]?|CL[NSR]?|SH[CINRS]?|SHIN|SHIS|SHLN|SHLS|EQ[NSM]?|AOS|AON)\s*\d+[\s,]*(?:Conjunto|Conj\.?|Cj\.?)[\s,]*[\dA-Za-z]+[\s,]*(?:Lote|Lt\.?|Loja|Bloco|Bl\.?)[\s,]*[\dA-Za-z]+(?:[\s,]*(?:Loja|Apto?\.?|Apart\.?|Sala|Casa)[\s,]*[\dA-Za-z]+)?(?:[\s,]*[-–]?[\s,]*[\wÀ-ÿ\s]+)?(?:[\s,]*[-–][\s,]*DF)?/gi,
+      (m) => {
+        this.stats.address++;
+        return "[ENDEREÇO PROTEGIDO]";
+      }
+    );
+    
+    // 8.2) Endereço completo tradicional: "Rua Comendador Franco Ferreira, 327 Loja 10 - San Martin"
     out = out.replace(
       /\b(Rua|Av\.|Avenida|Travessa|Praça|Pra\.|Alameda|Al\.|Rodovia|Estrada|R\.|AV\.|Tv\.|Pça\.|Rod\.|BR-?\d+)\s+[\wÀ-ÿ\s,]+(?:,?\s*n?[°º]?\s*\d+)?(?:\s+(?:Loja|Apto?\.?|Apart\.?|Bloco|Sala|Lote|Quadra|Casa)\s*[\dA-Z]+)?(?:\s*[-–]\s*[\wÀ-ÿ\s]+)?/gi,
       (m) => {
