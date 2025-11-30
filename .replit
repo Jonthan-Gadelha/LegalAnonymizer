@@ -40,5 +40,5 @@ externalPort = 3000
 
 [deployment]
 build = ["sh", "-c", "."]
-run = ["sh", "-c", "python app.py"]
-deploymentTarget = "cloudrun"
+run = ["node", "server.js"]
+deploymentTarget = "autoscale"
